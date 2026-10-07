@@ -1,101 +1,59 @@
-<% dummy_page_nav(title: "Template Demo", back_url: root_path) %>
+<% dummy_page_nav(title: "Cache Demo", back_url: root_path) %>
 
 <div class="flex w-full flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
-    title: "Template Demo",
-    subtitle: "This dummy app is the browser-facing demo surface for the template.",
+    title: "RecordingStudioCache",
+    subtitle: "App-side Rails.cache primitives — not Cloudflare, R2, or Artifacts.",
     variant: :h1
   ) %>
 
-  <div class="grid gap-6 lg:grid-cols-2">
+  <% if notice.present? %>
+    <%= render FlatPack::Alert::Component.new(style: :success, title: notice) %>
+  <% end %>
+
+  <% if @root %>
     <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
       <% card.header do %>
         <%= render FlatPack::PageTitle::Component.new(
-          title: "What's working",
-          subtitle: "Core template capabilities already wired into the dummy app.",
+          title: "fetch(recording, :api_payload)",
+          subtitle: "Workspace root recording under Solid-Cache-ready Rails.cache (memory store in dummy).",
           variant: :h3,
           class: "mb-0 pb-0"
         ) %>
       <% end %>
 
       <% card.body do %>
-        <ul class="space-y-3 text-sm leading-6">
-          <li>Rails engine routes are mounted and responding.</li>
-          <li>PostgreSQL UUID-oriented migrations are included in the engine.</li>
-          <li>Tailwind sources can be wired into a host app through the install generator.</li>
-          <li>The dummy app exercises authentication, the Recording Studio default layout, and FlatPack.</li>
-        </ul>
-      <% end %>
-    <% end %>
-
-    <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
-      <% card.header do %>
-        <%= render FlatPack::PageTitle::Component.new(
-          title: "Next steps",
-          subtitle: "The usual first moves when turning the template into a real addon.",
-          variant: :h3,
-          class: "mb-0 pb-0"
-        ) %>
-      <% end %>
-
-      <% card.body do %>
-        <ol class="space-y-3 text-sm leading-6 list-decimal pl-5">
-          <li>Run <code>bin/rename_gem your_addon_name</code> when you are ready to rename the engine.</li>
-          <li>Replace the sample migration with your addon tables and install them into the host app.</li>
-          <li>Configure Recording Studio recordable types and capabilities in the host app initializer.</li>
-          <li>Use the dummy app to validate layout, asset scanning, and authentication flows.</li>
-        </ol>
-      <% end %>
-    <% end %>
-
-    <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
-      <% card.header do %>
-        <%= render FlatPack::PageTitle::Component.new(
-          title: "FlatPack usage",
-          subtitle: "This page uses FlatPack components for its primary UI structure.",
-          variant: :h3,
-          class: "mb-0 pb-0"
-        ) %>
-      <% end %>
-
-      <% card.body do %>
-        <p class="text-sm leading-6 text-(--surface-content-color)">
-          Use FlatPack cards, buttons, badges, inputs, and layout primitives as the default path for addon UI. Keep raw HTML for simple semantic content only.
-        </p>
+        <dl class="space-y-3 text-sm leading-6">
+          <div>
+            <dt class="font-medium">Tree version</dt>
+            <dd><code><%= @tree_version %></code></dd>
+          </div>
+          <div>
+            <dt class="font-medium">Cache key</dt>
+            <dd class="break-all"><code><%= @cache_key %></code></dd>
+          </div>
+          <div>
+            <dt class="font-medium">Payload</dt>
+            <dd><pre class="whitespace-pre-wrap text-xs"><%= JSON.pretty_generate(@payload) %></pre></dd>
+          </div>
+        </dl>
       <% end %>
 
       <% card.footer do %>
-        <a href="https://github.com/bowerbird-app/flatpack"
-           target="_blank"
-           rel="noopener noreferrer"
-           class="inline-flex">
+        <%= link_to root_path(invalidate: 1), class: "inline-flex" do %>
           <%= render FlatPack::Button::Component.new(
-            text: "View FlatPack documentation",
-            style: :primary,
+            text: "Invalidate tree",
+            style: :secondary,
             size: :md
           ) %>
-        </a>
+        <% end %>
       <% end %>
     <% end %>
-
-    <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-      <% card.header do %>
-        <%= render FlatPack::PageTitle::Component.new(
-          title: "Install flow",
-          subtitle: "What the host app generator path covers.",
-          variant: :h3,
-          class: "mb-0 pb-0"
-        ) %>
-      <% end %>
-
-      <% card.body do %>
-        <ul class="space-y-3 text-sm leading-6">
-          <li>Add the gem to your host app and run <code>bundle install</code>.</li>
-          <li>Run <code>rails generate gem_template:install</code> to mount the engine and add configuration.</li>
-          <li>Run <code>rails generate gem_template:migrations</code> to copy engine migrations into the host app.</li>
-          <li>Rebuild Tailwind if needed with <code>bin/rails tailwindcss:build</code>.</li>
-        </ul>
-      <% end %>
-    <% end %>
-  </div>
+  <% else %>
+    <%= render FlatPack::Alert::Component.new(
+      style: :warning,
+      title: "No workspace seeded",
+      message: "Run db:seed to create Studio Workspace."
+    ) %>
+  <% end %>
 </div>

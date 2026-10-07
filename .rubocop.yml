@@ -50,3 +50,13 @@ Naming/VariableNumber:
 Lint/MissingSuper:
   Exclude:
     - 'test/services/**/*'
+
+# Our API is RecordingStudioCache.fetch(recording, entry) { … }; RuboCop
+# mistakes it for Hash#fetch(default) { … }.
+Style/RedundantFetchBlock:
+  Exclude:
+    - 'test/cache_store_test.rb'
+
+Lint/UselessDefaultValueArgument:
+  Exclude:
+    - 'test/cache_store_test.rb'

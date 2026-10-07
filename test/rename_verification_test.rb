@@ -231,7 +231,11 @@ class RenameVerificationTest < Minitest::Test
 
     ruby_files = Dir.glob(File.join(@root, "**", "*.rb"))
     # Exclude test files and this verification test itself
-    ruby_files.reject! { |f| f.include?("test/dummy") || f.include?("rename_verification_test.rb") }
+    ruby_files.reject! do |f|
+      f.include?("test/dummy") ||
+        f.include?("rename_verification_test.rb") ||
+        f.include?("rename_gem_identity_test.rb")
+    end
 
     files_with_old_refs = []
 
