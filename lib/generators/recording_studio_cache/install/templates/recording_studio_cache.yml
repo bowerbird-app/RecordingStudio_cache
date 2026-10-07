@@ -1,0 +1,13 @@
+development:
+  namespace: rsc
+  policies:
+    api_payload:
+      expires_in: 60
+      race_ttl: 2
+
+production:
+  namespace: rsc
+  policies:
+    api_payload:
+      expires_in: 60
+      race_ttl: 2

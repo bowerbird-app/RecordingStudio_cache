@@ -2,23 +2,23 @@
 
 require "test_helper"
 
-class GemTemplateTest < Minitest::Test
+class RecordingStudioCacheTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.2.3", ::GemTemplate::VERSION
+    assert_equal "0.3.0", ::RecordingStudioCache::VERSION
   end
 
   def test_engine_exists
-    assert_kind_of Class, ::GemTemplate::Engine
+    assert_kind_of Class, ::RecordingStudioCache::Engine
   end
 
   def test_gemspec_pins_recording_studio_4_2
-    gemspec = File.read(File.expand_path("../gem_template.gemspec", __dir__))
+    gemspec = File.read(File.expand_path("../recording_studio_cache.gemspec", __dir__))
 
     assert_includes gemspec, 'spec.add_dependency "recording_studio", "~> 4.2"'
   end
 
   def test_gemspec_excludes_cursor_config
-    spec = Gem::Specification.load(File.expand_path("../gem_template.gemspec", __dir__))
+    spec = Gem::Specification.load(File.expand_path("../recording_studio_cache.gemspec", __dir__))
     cursor_files = spec.files.select { |path| path == ".cursor" || path.split("/").include?(".cursor") }
 
     assert_empty cursor_files, "gemspec must not package .cursor/ (got #{cursor_files.inspect})"
@@ -28,7 +28,7 @@ class GemTemplateTest < Minitest::Test
     path = File.expand_path("../.cursor/environment.json", __dir__)
     json = JSON.parse(File.read(path))
 
-    assert_equal "recording-studio-gem-template", json["name"]
+    assert_equal "recording-studio-cache", json["name"]
     assert_equal ".cursor/install.sh", json["install"]
     assert_equal ".cursor/start.sh", json["start"]
     refute json.key?("snapshot"), "snapshot pins a Personal build and skips install"
@@ -83,13 +83,13 @@ class GemTemplateTest < Minitest::Test
   end
 
   def test_template_does_not_ship_copied_core_hooks_or_base_service
-    refute File.exist?(File.expand_path("../lib/gem_template/hooks.rb", __dir__))
-    refute File.exist?(File.expand_path("../lib/gem_template/services/base_service.rb", __dir__))
-    refute File.exist?(File.expand_path("../lib/gem_template/services/example_service.rb", __dir__))
+    refute File.exist?(File.expand_path("../lib/recording_studio_cache/hooks.rb", __dir__))
+    refute File.exist?(File.expand_path("../lib/recording_studio_cache/services/base_service.rb", __dir__))
+    refute File.exist?(File.expand_path("../lib/recording_studio_cache/services/example_service.rb", __dir__))
   end
 
   def test_example_capability_wraps_include_for_and_is_not_enabled_globally
-    source = File.read(File.expand_path("../lib/gem_template/capabilities/example.rb", __dir__))
+    source = File.read(File.expand_path("../lib/recording_studio_cache/capabilities/example.rb", __dir__))
 
     assert_includes source, "def self.to(**)"
     assert_includes source, "RecordingStudio::Capabilities.include_for(:example, **)"
@@ -168,35 +168,41 @@ class GemTemplateTest < Minitest::Test
     refute_includes readme_source, "flat_pack_sidebar"
   end
 
-  def test_product_readme_is_the_template_guide
+  def test_product_readme_covers_cache_api_and_boundary
     readme = File.read(File.expand_path("../README.md", __dir__))
 
-    assert_includes readme, "RecordingStudio"
-    assert_includes readme, "dummy GitHub tag `v4.2.2`"
-    assert_includes readme, "dummy GitHub tag `v0.1.196`"
-    assert_includes readme, "dummy GitHub tag `v0.10.1`"
-    assert_includes readme, "dummy GitHub tag `v0.5.1`"
-    refute_includes readme, "dummy GitHub tag `v4.2.1`"
-    refute_includes readme, "dummy GitHub tag `v4.2.0`"
-    refute_includes readme, "v0.1.177"
-    refute_includes readme, "v0.9.1"
-    refute_includes readme, "v0.5.0"
-    refute_includes readme, "v0.1.133"
-    refute_includes readme, "v3 declarations"
+    assert_includes readme, "RecordingStudioCache"
+    assert_includes readme, "Rails.cache"
+    assert_includes readme, "invalidate_tree!"
+    assert_includes readme, "RecordingStudioArtifacts"
+    assert_includes readme, "Solid Cache"
+    assert_includes readme, "race_ttl"
     refute_includes readme, "RecordingStudio v3"
     refute_includes readme, "ExampleService"
     refute_includes readme, "recording_studio/v3.0.0"
   end
 
-  def test_dummy_home_page_uses_demo_title_only
+  def test_dummy_home_page_documents_wiring_and_keeps_live_demo
     view_path = File.expand_path("dummy/app/views/home/index.html.erb", __dir__)
     view_source = File.read(view_path)
 
-    assert_includes view_source, 'title: "Template Demo"'
-    assert_includes view_source, 'subtitle: "This dummy app is the browser-facing demo surface for the template."'
+    assert_includes view_source, 'title: "RecordingStudioCache"'
+    assert_includes view_source, "RecordingStudioCache.configure"
+    assert_includes view_source, "namespace"
+    assert_includes view_source, "register_policy"
+    assert_includes view_source, "solid_cache_store"
+    assert_includes view_source, "redis_cache_store"
+    assert_includes view_source, "RAILS_MASTER_KEY"
+    assert_includes view_source, "does not read ENV"
+    assert_includes view_source, "RecordingStudioArtifacts"
+    assert_includes view_source, "api_payload"
+    assert_includes view_source, "Invalidate tree"
     assert_includes view_source, "FlatPack::Card::Component"
+    assert_includes view_source, "FlatPack::CodeBlock::Component"
+    assert_includes view_source, "FlatPack::SectionTitle::Component"
+    assert_includes view_source, "FlatPack::Table::Component"
     assert_includes view_source, "dummy_page_nav"
-    refute_includes view_source, 'title: "Demo"'
+    refute_includes view_source, 'title: "Template Demo"'
     refute_includes view_source, "FlatPack::Breadcrumb::Component"
   end
 
@@ -245,7 +251,7 @@ class GemTemplateTest < Minitest::Test
   end
 
   def test_engine_does_not_ship_a_home_view
-    view_path = File.expand_path("../app/views/gem_template/home/index.html.erb", __dir__)
+    view_path = File.expand_path("../app/views/recording_studio_cache/home/index.html.erb", __dir__)
 
     refute File.exist?(view_path)
   end

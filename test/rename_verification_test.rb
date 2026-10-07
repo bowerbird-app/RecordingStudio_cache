@@ -229,20 +229,25 @@ class RenameVerificationTest < Minitest::Test
     # Skip if current name IS gem_template (nothing to check - hasn't been renamed yet)
     skip if @gem_name == "gem_template"
 
-    ruby_files = Dir.glob(File.join(@root, "**", "*.rb"))
-    # Exclude test files and this verification test itself
-    ruby_files.reject! { |f| f.include?("test/dummy") || f.include?("rename_verification_test.rb") }
-
-    files_with_old_refs = []
-
-    ruby_files.each do |file|
-      content = File.read(file)
-      files_with_old_refs << file if content.include?("gem_template") || content.include?("GemTemplate")
-    end
+    files_with_old_refs = ruby_files_for_orphan_scan.select { |file| contains_old_gem_template_identity?(file) }
 
     assert files_with_old_refs.empty?,
            "Found old 'gem_template' references in:\n#{files_with_old_refs.join("\n")}"
   end
+
+  def ruby_files_for_orphan_scan
+    Dir.glob(File.join(@root, "**", "*.rb")).reject { |path| excluded_from_orphan_scan?(path) }
+  end
+
+  def excluded_from_orphan_scan?(path)
+    %w[test/dummy rename_verification_test.rb rename_gem_identity_test.rb].any? { |fragment| path.include?(fragment) }
+  end
+
+  def contains_old_gem_template_identity?(file)
+    content = File.read(file)
+    content.include?("gem_template") || content.include?("GemTemplate")
+  end
+  private :ruby_files_for_orphan_scan, :excluded_from_orphan_scan?, :contains_old_gem_template_identity?
 
   def test_no_old_gem_template_directories
     skip if @gem_name == "gem_template"

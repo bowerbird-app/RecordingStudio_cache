@@ -4,54 +4,60 @@ require "test_helper"
 
 class ConfigurationTest < Minitest::Test
   def setup
-    @configuration = GemTemplate::Configuration.new
+    @configuration = RecordingStudioCache::Configuration.new
   end
 
-  def test_merge_updates_known_attributes
-    @configuration.merge!(api_key: "abc123", timeout: 9, enable_feature_x: true)
+  def test_defaults
+    assert_equal "rsc", @configuration.namespace
+    assert_nil @configuration.cache_store
+    assert_equal 60, @configuration.policy_for(:api_payload).expires_in
+    assert_equal 2, @configuration.policy_for(:api_payload).race_ttl
+    assert_instance_of RecordingStudio::Hooks, @configuration.hooks
+  end
 
-    assert_equal "abc123", @configuration.api_key
-    assert_equal 9, @configuration.timeout
-    assert_equal true, @configuration.enable_feature_x
+  def test_merge_updates_namespace
+    @configuration.merge!(namespace: "app")
+
+    assert_equal "app", @configuration.namespace
   end
 
   def test_merge_ignores_unknown_keys
-    @configuration.merge!(unknown_key: "ignored", timeout: 7)
+    @configuration.merge!(unknown_key: "ignored", namespace: "x")
 
     refute_respond_to @configuration, :unknown_key
-    assert_equal 7, @configuration.timeout
+    assert_equal "x", @configuration.namespace
   end
 
   def test_merge_with_non_enumerable_is_noop
-    original = @configuration.to_h
+    original = @configuration.namespace
 
     @configuration.merge!(nil)
 
-    assert_nil @configuration.api_key if original[:api_key].nil?
-    assert_equal original[:api_key], @configuration.api_key unless original[:api_key].nil?
-    assert_equal original[:timeout], @configuration.timeout
-    assert_equal original[:enable_feature_x], @configuration.enable_feature_x
+    assert_equal original, @configuration.namespace
   end
 
-  def test_initialize_uses_environment_api_key_and_defaults
-    previous_value = ENV.fetch("GEM_TEMPLATE_API_KEY", nil)
-    ENV["GEM_TEMPLATE_API_KEY"] = "env-token"
+  def test_merge_accepts_string_keys_and_policies
+    @configuration.merge!(
+      "namespace" => "from_yaml",
+      "policies" => { "custom" => { "expires_in" => 15, "race_ttl" => 1 } }
+    )
 
-    configuration = GemTemplate::Configuration.new
-
-    assert_equal "env-token", configuration.api_key
-    assert_equal false, configuration.enable_feature_x
-    assert_equal 5, configuration.timeout
-    assert_instance_of RecordingStudio::Hooks, configuration.hooks
-  ensure
-    ENV["GEM_TEMPLATE_API_KEY"] = previous_value
+    assert_equal "from_yaml", @configuration.namespace
+    assert_equal 15, @configuration.policy_for(:custom).expires_in
+    assert_equal 1, @configuration.policy_for(:custom).race_ttl
   end
 
-  def test_merge_accepts_string_keys
-    @configuration.merge!("api_key" => "string-key", "timeout" => 12)
+  def test_unknown_policy_falls_back_to_default
+    policy = @configuration.policy_for(:missing)
 
-    assert_equal "string-key", @configuration.api_key
-    assert_equal 12, @configuration.timeout
+    assert_equal :default, policy.name
+  end
+
+  def test_register_policy
+    @configuration.register_policy(:dashboard, expires_in: 12, race_condition_ttl: 3)
+
+    assert_equal 12, @configuration.policy_for(:dashboard).expires_in
+    assert_equal 3, @configuration.policy_for(:dashboard).race_ttl
   end
 
   def test_to_h_reports_registered_hook_counts
@@ -61,13 +67,15 @@ class ConfigurationTest < Minitest::Test
 
     result = @configuration.to_h
 
+    assert_equal "rsc", result.fetch(:namespace)
+    assert_equal :rails_cache, result.fetch(:cache_store)
     assert_equal 2, result.fetch(:hooks_registered).fetch(:before_initialize)
     assert_equal 1, result.fetch(:hooks_registered).fetch(:after_service)
   end
 
   def test_configure_without_block_is_safe
-    GemTemplate.configure
+    RecordingStudioCache.configure
 
-    assert_kind_of GemTemplate::Configuration, GemTemplate.configuration
+    assert_kind_of RecordingStudioCache::Configuration, RecordingStudioCache.configuration
   end
 end

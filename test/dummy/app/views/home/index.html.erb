@@ -1,101 +1,226 @@
-<% dummy_page_nav(title: "Template Demo", back_url: root_path) %>
+<% dummy_page_nav(title: "Cache wiring", back_url: root_path) %>
 
-<div class="flex w-full flex-col gap-6">
+<div class="flex w-full flex-col gap-8">
   <%= render FlatPack::PageTitle::Component.new(
-    title: "Template Demo",
-    subtitle: "This dummy app is the browser-facing demo surface for the template.",
+    title: "RecordingStudioCache",
+    subtitle: "Living host wiring docs for this gem — configure Rails.cache app payloads, not Cloudflare/R2/Artifacts.",
     variant: :h1
   ) %>
 
-  <div class="grid gap-6 lg:grid-cols-2">
+  <% if notice.present? %>
+    <%= render FlatPack::Alert::Component.new(style: :success, title: notice) %>
+  <% end %>
+
+  <%= render FlatPack::Alert::Component.new(
+    style: :info,
+    title: "Boundary",
+    message: "This gem wraps Rails.cache only. Public HTML/JSON publish and edge cache belong to RecordingStudioArtifacts + Cloudflare. Redis is optional on the host — the gem does not hard-require it."
+  ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "1. Install on the host",
+    subtitle: "Generator copies the initializer; the host owns the cache backend."
+  ) %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~'CODE'
+      # Gemfile
+      gem "recording_studio", "~> 4.2"
+      gem "recording_studio_cache", github: "bowerbird-app/RecordingStudio_cache"
+
+      # then:
+      # bin/rails generate recording_studio_cache:install
+      # → config/initializers/recording_studio_cache.rb
+      # → optional config/recording_studio_cache.yml
+    CODE
+  ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "2. RecordingStudioCache.configure",
+    subtitle: "Options the gem actually exposes (see Configuration)."
+  ) %>
+
+  <% config_rows = [
+    {
+      option: "namespace",
+      default: "rsc",
+      dummy: @configuration.namespace,
+      notes: "Key prefix in {namespace}/v1/r/…"
+    },
+    {
+      option: "cache_store",
+      default: "nil → Rails.cache",
+      dummy: "#{@config_snapshot[:cache_store]} (effective #{@effective_store})",
+      notes: "Override only if you need a store other than Rails.cache"
+    },
+    {
+      option: "register_policy / policies",
+      default: "built-ins below",
+      dummy: @configuration.policies.keys.map(&:inspect).join(", "),
+      notes: "expires_in + race_ttl (race_condition_ttl)"
+    },
+    {
+      option: "hooks",
+      default: "empty registry",
+      dummy: @config_snapshot[:hooks_registered].inspect,
+      notes: "Recording Studio engine hooks (template seam)"
+    }
+  ] %>
+
+  <%= render FlatPack::Table::Component.new(data: config_rows, class: "text-sm") do |table| %>
+    <% table.column(title: "Option") { |row| tag.code(row[:option]) } %>
+    <% table.column(title: "Default") { |row| tag.code(row[:default]) } %>
+    <% table.column(title: "Dummy now") { |row| tag.code(row[:dummy]) } %>
+    <% table.column(title: "Notes") { |row| row[:notes] } %>
+  <% end %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~CODE
+      # config/initializers/recording_studio_cache.rb (this dummy)
+      RecordingStudioCache.configure do |config|
+        config.namespace = #{@configuration.namespace.inspect}
+        config.register_policy :api_payload, expires_in: 1.minute, race_ttl: 2.seconds
+        # config.cache_store = Rails.cache  # optional; nil means Rails.cache
+      end
+
+      # Also merged when present (engine load_config):
+      #   config/recording_studio_cache.yml  via Rails.application.config_for
+      #   config.x.recording_studio_cache    in application.rb / environments
+    CODE
+  ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Built-in policies",
+    subtitle: "Entry names can match a policy (e.g. :api_payload). Unknown names fall back to :default."
+  ) %>
+
+  <% policy_rows = @built_in_policies.map { |name, attrs|
+    { name: ":#{name}", expires_in: "#{attrs[:expires_in]} s", race_ttl: "#{attrs[:race_ttl]} s" }
+  } %>
+
+  <%= render FlatPack::Table::Component.new(data: policy_rows, class: "text-sm") do |table| %>
+    <% table.column(title: "Name") { |row| tag.code(row[:name]) } %>
+    <% table.column(title: "expires_in") { |row| tag.code(row[:expires_in]) } %>
+    <% table.column(title: "race_ttl") { |row| tag.code(row[:race_ttl]) } %>
+  <% end %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "3. Host cache backend (not this gem)",
+    subtitle: "Set Rails.cache on the host. Recommended on DO App Platform: Solid Cache."
+  ) %>
+
+  <p class="text-sm leading-6 text-(--body-muted-content-color)">
+    This dummy uses <code><%= @rails_cache_store %></code> in development/test.
+    Production hosts should pick a durable store — the gem never provisions Redis or Solid Cache.
+  </p>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~'CODE'
+      # Host Gemfile (not recording_studio_cache.gemspec)
+      gem "solid_cache"
+
+      # config/environments/production.rb
+      config.cache_store = :solid_cache_store
+
+      # Optional later — Redis is host-owned, never a gem dependency:
+      # gem "redis"
+      # config.cache_store = :redis_cache_store, { url: ENV["REDIS_URL"] }
+    CODE
+  ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "4. Credentials & env",
+    subtitle: "This gem does not read ENV or Rails credentials for cache settings."
+  ) %>
+
+  <%= render FlatPack::Alert::Component.new(
+    style: @master_key_present ? :success : :warning,
+    title: @master_key_present ? "Dummy master key present" : "Dummy master key missing",
+    message: "RecordingStudioCache has no cache API keys in credentials. The shared dummy credentials.yml.enc still needs RAILS_MASTER_KEY (or config/master.key) for Devise / secret_key_base — same shared RecordingStudio_* development key as other addon dummies."
+  ) %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :bash,
+    code: <<~'CODE'
+      # Dummy / Codespaces only — not gem cache config:
+      export RAILS_MASTER_KEY=…   # or write test/dummy/config/master.key
+
+      # Host Redis (optional, only if you chose redis_cache_store):
+      # export REDIS_URL=redis://…
+    CODE
+  ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "5. Consumer call shape",
+    subtitle: "After wiring, sibling gems and the host call fetch / invalidate_tree!."
+  ) %>
+
+  <%= render FlatPack::CodeBlock::Component.new(
+    language: :ruby,
+    code: <<~'CODE'
+      payload = RecordingStudioCache.fetch(recording, :api_payload) do
+        expensive_api_payload_for(recording)
+      end
+
+      # After create/revise/move/trash under a root:
+      RecordingStudioCache.invalidate_tree!(recording.root_recording_or_self)
+
+      # Key shape:
+      # {namespace}/v1/r/{root_id}/tv/{tree_version}/rec/{recording_id}/{entry}
+    CODE
+  ) %>
+
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Live demo",
+    subtitle: "fetch(:api_payload) against Studio Workspace — validates memory_store wiring in this dummy."
+  ) %>
+
+  <% if @root %>
     <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
       <% card.header do %>
         <%= render FlatPack::PageTitle::Component.new(
-          title: "What's working",
-          subtitle: "Core template capabilities already wired into the dummy app.",
+          title: "fetch(recording, :api_payload)",
+          subtitle: "Namespace #{@configuration.namespace.inspect} · Rails.cache=#{@rails_cache_store}",
           variant: :h3,
           class: "mb-0 pb-0"
         ) %>
       <% end %>
 
       <% card.body do %>
-        <ul class="space-y-3 text-sm leading-6">
-          <li>Rails engine routes are mounted and responding.</li>
-          <li>PostgreSQL UUID-oriented migrations are included in the engine.</li>
-          <li>Tailwind sources can be wired into a host app through the install generator.</li>
-          <li>The dummy app exercises authentication, the Recording Studio default layout, and FlatPack.</li>
-        </ul>
-      <% end %>
-    <% end %>
-
-    <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
-      <% card.header do %>
-        <%= render FlatPack::PageTitle::Component.new(
-          title: "Next steps",
-          subtitle: "The usual first moves when turning the template into a real addon.",
-          variant: :h3,
-          class: "mb-0 pb-0"
-        ) %>
-      <% end %>
-
-      <% card.body do %>
-        <ol class="space-y-3 text-sm leading-6 list-decimal pl-5">
-          <li>Run <code>bin/rename_gem your_addon_name</code> when you are ready to rename the engine.</li>
-          <li>Replace the sample migration with your addon tables and install them into the host app.</li>
-          <li>Configure Recording Studio recordable types and capabilities in the host app initializer.</li>
-          <li>Use the dummy app to validate layout, asset scanning, and authentication flows.</li>
-        </ol>
-      <% end %>
-    <% end %>
-
-    <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
-      <% card.header do %>
-        <%= render FlatPack::PageTitle::Component.new(
-          title: "FlatPack usage",
-          subtitle: "This page uses FlatPack components for its primary UI structure.",
-          variant: :h3,
-          class: "mb-0 pb-0"
-        ) %>
-      <% end %>
-
-      <% card.body do %>
-        <p class="text-sm leading-6 text-(--surface-content-color)">
-          Use FlatPack cards, buttons, badges, inputs, and layout primitives as the default path for addon UI. Keep raw HTML for simple semantic content only.
-        </p>
+        <dl class="space-y-3 text-sm leading-6">
+          <div>
+            <dt class="font-medium">Tree version</dt>
+            <dd><code><%= @tree_version %></code></dd>
+          </div>
+          <div>
+            <dt class="font-medium">Cache key</dt>
+            <dd class="break-all"><code><%= @cache_key %></code></dd>
+          </div>
+          <div>
+            <dt class="font-medium">Payload</dt>
+            <dd><pre class="whitespace-pre-wrap text-xs"><%= JSON.pretty_generate(@payload) %></pre></dd>
+          </div>
+        </dl>
       <% end %>
 
       <% card.footer do %>
-        <a href="https://github.com/bowerbird-app/flatpack"
-           target="_blank"
-           rel="noopener noreferrer"
-           class="inline-flex">
+        <%= link_to root_path(invalidate: 1), class: "inline-flex" do %>
           <%= render FlatPack::Button::Component.new(
-            text: "View FlatPack documentation",
-            style: :primary,
+            text: "Invalidate tree",
+            style: :secondary,
             size: :md
           ) %>
-        </a>
+        <% end %>
       <% end %>
     <% end %>
-
-    <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-      <% card.header do %>
-        <%= render FlatPack::PageTitle::Component.new(
-          title: "Install flow",
-          subtitle: "What the host app generator path covers.",
-          variant: :h3,
-          class: "mb-0 pb-0"
-        ) %>
-      <% end %>
-
-      <% card.body do %>
-        <ul class="space-y-3 text-sm leading-6">
-          <li>Add the gem to your host app and run <code>bundle install</code>.</li>
-          <li>Run <code>rails generate gem_template:install</code> to mount the engine and add configuration.</li>
-          <li>Run <code>rails generate gem_template:migrations</code> to copy engine migrations into the host app.</li>
-          <li>Rebuild Tailwind if needed with <code>bin/rails tailwindcss:build</code>.</li>
-        </ul>
-      <% end %>
-    <% end %>
-  </div>
+  <% else %>
+    <%= render FlatPack::Alert::Component.new(
+      style: :warning,
+      title: "No workspace seeded",
+      message: "Run db:seed to create Studio Workspace."
+    ) %>
+  <% end %>
 </div>

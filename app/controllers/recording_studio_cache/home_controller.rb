@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module GemTemplate
+module RecordingStudioCache
   class HomeController < ApplicationController
     def index
       head :ok
