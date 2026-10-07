@@ -2,6 +2,15 @@
 
 class HomeController < ApplicationController
   def index
+    @configuration = RecordingStudioCache.configuration
+    @config_snapshot = @configuration.to_h
+    @rails_cache_store = Rails.cache.class.name
+    @effective_store = RecordingStudioCache.store.class.name
+    @built_in_policies = RecordingStudioCache::Configuration::DEFAULT_POLICIES
+    @master_key_present =
+      ENV["RAILS_MASTER_KEY"].to_s.strip.present? ||
+      File.exist?(Rails.root.join("config/master.key"))
+
     @workspace = Workspace.find_by(name: "Studio Workspace") || Workspace.order(:created_at).first
     @root = @workspace && RecordingStudio.root_recording_for(@workspace)
     return unless @root

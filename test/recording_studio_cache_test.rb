@@ -182,14 +182,25 @@ class RecordingStudioCacheTest < Minitest::Test
     refute_includes readme, "recording_studio/v3.0.0"
   end
 
-  def test_dummy_home_page_demos_cache_fetch
+  def test_dummy_home_page_documents_wiring_and_keeps_live_demo
     view_path = File.expand_path("dummy/app/views/home/index.html.erb", __dir__)
     view_source = File.read(view_path)
 
     assert_includes view_source, 'title: "RecordingStudioCache"'
+    assert_includes view_source, "RecordingStudioCache.configure"
+    assert_includes view_source, "namespace"
+    assert_includes view_source, "register_policy"
+    assert_includes view_source, "solid_cache_store"
+    assert_includes view_source, "redis_cache_store"
+    assert_includes view_source, "RAILS_MASTER_KEY"
+    assert_includes view_source, "does not read ENV"
+    assert_includes view_source, "RecordingStudioArtifacts"
     assert_includes view_source, "api_payload"
     assert_includes view_source, "Invalidate tree"
     assert_includes view_source, "FlatPack::Card::Component"
+    assert_includes view_source, "FlatPack::CodeBlock::Component"
+    assert_includes view_source, "FlatPack::SectionTitle::Component"
+    assert_includes view_source, "FlatPack::Table::Component"
     assert_includes view_source, "dummy_page_nav"
     refute_includes view_source, 'title: "Template Demo"'
     refute_includes view_source, "FlatPack::Breadcrumb::Component"

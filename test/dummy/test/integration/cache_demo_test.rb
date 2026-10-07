@@ -15,11 +15,15 @@ class CacheDemoTest < ActionDispatch::IntegrationTest
     Rails.cache.clear
   end
 
-  test "home fetch caches api payload and invalidate bumps tree version" do
+  test "home documents host wiring and live fetch/invalidate still works" do
     get root_path
     assert_response :success
     assert_match "RecordingStudioCache", response.body
+    assert_match "RecordingStudioCache.configure", response.body
+    assert_match "solid_cache_store", response.body
+    assert_match "RAILS_MASTER_KEY", response.body
     assert_match "api_payload", response.body
+    assert_match "rsc_dummy", response.body
 
     first_version = RecordingStudioCache.tree_version_for(@root)
     assert RecordingStudioCache.exist?(@root, :api_payload)
