@@ -25,7 +25,9 @@ module RecordingStudioCache
       end
 
       def add_yaml_config
-        return unless yes?("Would you like to add `config/recording_studio_cache.yml` for environment-specific settings? [y/N]")
+        prompt = "Would you like to add `config/recording_studio_cache.yml` " \
+                 "for environment-specific settings? [y/N]"
+        return unless yes?(prompt)
 
         template "recording_studio_cache.yml", "config/recording_studio_cache.yml"
       end
@@ -94,9 +96,10 @@ module RecordingStudioCache
       end
 
       def tailwind_source_lines
+        gem_views = "recording_studio_cache-*/app/views/**/*.erb"
         [
           '@source "../../vendor/bundle/**/recording_studio_cache/app/views/**/*.erb";',
-          '@source "../../../../../../usr/local/bundle/ruby/**/bundler/gems/recording_studio_cache-*/app/views/**/*.erb";',
+          "@source \"../../../../../../usr/local/bundle/ruby/**/bundler/gems/#{gem_views}\";",
           '@source "../../vendor/bundle/**/flatpack/app/components/**/*.{rb,erb}";',
           '@source "../../../../../../usr/local/bundle/ruby/**/bundler/gems/flatpack-*/app/components/**/*.{rb,erb}";'
         ]
