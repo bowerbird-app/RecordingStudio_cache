@@ -2,10 +2,10 @@
 
 ## Architecture
 
-- This repository is a Rails mountable engine template for building Recording Studio addons.
-- Preserve engine namespace isolation under `GemTemplate` unless the task is explicitly about renaming the gem.
-- Treat `docs/gem_template/` as architectural reference material. For current addon workflow, prefer the top-level README and the dummy app.
-- Keep changes small and scoped. Do not rewrite template surfaces unless the request requires it.
+- This repository is the RecordingStudioCache headless Rails engine gem (Rails.cache helpers).
+- Preserve engine namespace isolation under `RecordingStudioCache`.
+- Product docs live in the top-level README and CHANGELOG; the dummy app validates host wiring.
+- Keep changes small and scoped.
 
 ## UI Conventions
 

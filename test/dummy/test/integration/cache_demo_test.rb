@@ -24,13 +24,14 @@ class CacheDemoTest < ActionDispatch::IntegrationTest
     assert_match "RAILS_MASTER_KEY", response.body
     assert_match "api_payload", response.body
     assert_match "rsc_dummy", response.body
+    assert_match "register_entry", response.body
 
-    first_version = RecordingStudioCache.tree_version_for(@root)
+    first_generation = RecordingStudioCache.root_generation_for(@root)
     assert RecordingStudioCache.exist?(@root, :api_payload)
 
     get root_path(invalidate: 1)
     assert_redirected_to root_path
-    assert_operator RecordingStudioCache.tree_version_for(@root), :>, first_version
+    refute_equal first_generation, RecordingStudioCache.root_generation_for(@root)
     refute RecordingStudioCache.exist?(@root, :api_payload)
 
     follow_redirect!

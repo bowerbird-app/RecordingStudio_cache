@@ -47,6 +47,38 @@ class ConfigurationTest < Minitest::Test
     assert_equal 1, @configuration.policy_for(:custom).race_ttl
   end
 
+  def test_policies_assignment_merges_with_built_ins
+    @configuration.policies = {
+      "custom" => { "expires_in" => 15, "race_ttl" => 1 },
+      "api_payload" => { "expires_in" => 90, "race_ttl" => 3 }
+    }
+
+    assert_equal 5 * 60, @configuration.policy_for(:default).expires_in
+    assert_equal 15, @configuration.policy_for(:custom).expires_in
+    assert_equal 90, @configuration.policy_for(:api_payload).expires_in
+    assert_equal 30, @configuration.policy_for(:short).expires_in
+  end
+
+  def test_register_entry_maps_policy_and_rejects_unknown_policy
+    @configuration.register_entry :api_payload_en, policy: :api_payload
+
+    assert_equal :api_payload, @configuration.policy_name_for_entry(:api_payload_en)
+    assert_nil @configuration.policy_name_for_entry(:missing)
+
+    error = assert_raises(ArgumentError) do
+      @configuration.register_entry :broken, policy: :nope
+    end
+    assert_match(/unknown policy/, error.message)
+  end
+
+  def test_merge_entry_policies_from_yaml
+    @configuration.merge!(
+      "entry_policies" => { "api_payload" => "api_payload" }
+    )
+
+    assert_equal :api_payload, @configuration.policy_name_for_entry(:api_payload)
+  end
+
   def test_unknown_policy_falls_back_to_default
     policy = @configuration.policy_for(:missing)
 

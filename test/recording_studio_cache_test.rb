@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioCacheTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.3.0", ::RecordingStudioCache::VERSION
+    assert_equal "0.4.0", ::RecordingStudioCache::VERSION
   end
 
   def test_engine_exists
@@ -88,16 +88,16 @@ class RecordingStudioCacheTest < Minitest::Test
     refute File.exist?(File.expand_path("../lib/recording_studio_cache/services/example_service.rb", __dir__))
   end
 
-  def test_example_capability_wraps_include_for_and_is_not_enabled_globally
-    source = File.read(File.expand_path("../lib/recording_studio_cache/capabilities/example.rb", __dir__))
+  def test_example_capability_removed
+    path = File.expand_path("../lib/recording_studio_cache/capabilities/example.rb", __dir__)
+    refute File.exist?(path)
+    refute RecordingStudio.registered_capabilities.key?(:example)
+  end
 
-    assert_includes source, "def self.to(**)"
-    assert_includes source, "RecordingStudio::Capabilities.include_for(:example, **)"
-    refute_includes source, "enable_capability"
-    refute_includes source, "set_capability_options"
-    refute RecordingStudio.capability_enabled?(:example, for: "Folder")
-    refute RecordingStudio.capability_enabled?(:example, for: "Page")
-    assert_empty RecordingStudio.configuration.enabled_recordable_types_for(:example)
+  def test_template_docs_and_pages_migration_removed
+    refute Dir.exist?(File.expand_path("../docs/gem_template", __dir__))
+    refute File.exist?(File.expand_path("../db/migrate/20250101000001_create_recording_studio_cache_pages.rb", __dir__))
+    refute File.exist?(File.expand_path("../app/controllers/recording_studio_cache/home_controller.rb", __dir__))
   end
 
   def test_dummy_app_uses_recording_studio_default_layout
@@ -174,12 +174,18 @@ class RecordingStudioCacheTest < Minitest::Test
     assert_includes readme, "RecordingStudioCache"
     assert_includes readme, "Rails.cache"
     assert_includes readme, "invalidate_tree!"
+    assert_includes readme, "root_generation"
+    assert_includes readme, "vary:"
+    assert_includes readme, "register_entry"
+    assert_includes readme, "Headless"
     assert_includes readme, "RecordingStudioArtifacts"
     assert_includes readme, "Solid Cache"
     assert_includes readme, "race_ttl"
+    refute_includes readme, "tree_version_for"
     refute_includes readme, "RecordingStudio v3"
     refute_includes readme, "ExampleService"
     refute_includes readme, "recording_studio/v3.0.0"
+    refute_includes readme, "docs/gem_template"
   end
 
   def test_dummy_home_page_documents_wiring_and_keeps_live_demo
@@ -190,18 +196,21 @@ class RecordingStudioCacheTest < Minitest::Test
     assert_includes view_source, "RecordingStudioCache.configure"
     assert_includes view_source, "namespace"
     assert_includes view_source, "register_policy"
+    assert_includes view_source, "register_entry"
     assert_includes view_source, "solid_cache_store"
     assert_includes view_source, "redis_cache_store"
     assert_includes view_source, "RAILS_MASTER_KEY"
     assert_includes view_source, "does not read ENV"
     assert_includes view_source, "RecordingStudioArtifacts"
     assert_includes view_source, "api_payload"
+    assert_includes view_source, "Root generation"
     assert_includes view_source, "Invalidate tree"
     assert_includes view_source, "FlatPack::Card::Component"
     assert_includes view_source, "FlatPack::CodeBlock::Component"
     assert_includes view_source, "FlatPack::SectionTitle::Component"
     assert_includes view_source, "FlatPack::Table::Component"
     assert_includes view_source, "dummy_page_nav"
+    refute_includes view_source, "@tree_version"
     refute_includes view_source, 'title: "Template Demo"'
     refute_includes view_source, "FlatPack::Breadcrumb::Component"
   end

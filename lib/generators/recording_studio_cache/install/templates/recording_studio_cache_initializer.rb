@@ -15,4 +15,7 @@ RecordingStudioCache.configure do |config|
   # Named policies (ttl + race_condition_ttl for stampede-friendly fetch)
   # config.register_policy :api_payload, expires_in: 1.minute, race_ttl: 2.seconds
   # config.register_policy :dashboard, expires_in: 30.seconds, race_ttl: 2.seconds
+
+  # Entry names do not imply a policy. Map them explicitly, or pass policy: per call.
+  # config.register_entry :api_payload, policy: :api_payload
 end

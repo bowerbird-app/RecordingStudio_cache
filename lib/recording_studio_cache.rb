@@ -7,11 +7,10 @@ require "recording_studio"
 require "recording_studio_cache/version"
 require "recording_studio_cache/policy"
 require "recording_studio_cache/key_builder"
-require "recording_studio_cache/tree_version"
+require "recording_studio_cache/root_generation"
 require "recording_studio_cache/store"
 require "recording_studio_cache/engine"
 require "recording_studio_cache/configuration"
-require "recording_studio_cache/capabilities/example"
 
 # App-side cache primitives over Rails.cache for Recording Studio hosts and addons.
 #
@@ -20,7 +19,7 @@ require "recording_studio_cache/capabilities/example"
 # gem for authenticated/API/app payloads scoped to recordings and roots.
 #
 # @example
-#   RecordingStudioCache.fetch(recording, :api_payload) { build_payload(recording) }
+#   RecordingStudioCache.fetch(recording, :api_payload, policy: :api_payload) { build_payload(recording) }
 #   RecordingStudioCache.invalidate_tree!(recording.root_recording_or_self)
 module RecordingStudioCache
   class << self
@@ -43,36 +42,36 @@ module RecordingStudioCache
       configuration.cache_store || rails_cache!
     end
 
-    def fetch(recording, entry, policy: nil, **overrides, &)
-      Store.fetch(recording, entry, policy: policy, **overrides, &)
+    def fetch(recording, entry, **, &)
+      Store.fetch(recording, entry, **, &)
     end
 
-    def read(recording, entry)
-      Store.read(recording, entry)
+    def read(recording, entry, **)
+      Store.read(recording, entry, **)
     end
 
-    def write(recording, entry, value, policy: nil, **overrides)
-      Store.write(recording, entry, value, policy: policy, **overrides)
+    def write(recording, entry, value, **)
+      Store.write(recording, entry, value, **)
     end
 
-    def delete(recording, entry)
-      Store.delete(recording, entry)
+    def delete(recording, entry, **)
+      Store.delete(recording, entry, **)
     end
 
-    def exist?(recording, entry)
-      Store.exist?(recording, entry)
+    def exist?(recording, entry, **)
+      Store.exist?(recording, entry, **)
     end
 
-    def key_for(recording, entry, tree_version: nil)
-      KeyBuilder.for(recording, entry, tree_version: tree_version)
+    def key_for(recording, entry, root_generation: nil, vary: nil)
+      KeyBuilder.for(recording, entry, root_generation: root_generation, vary: vary)
     end
 
-    def tree_version_for(recording)
-      TreeVersion.current(KeyBuilder.root_id_for(recording))
+    def root_generation_for(recording)
+      RootGeneration.current(KeyBuilder.root_id_for(recording))
     end
 
     def invalidate_tree!(root_or_recording)
-      TreeVersion.invalidate!(root_or_recording)
+      RootGeneration.invalidate!(root_or_recording)
     end
 
     private

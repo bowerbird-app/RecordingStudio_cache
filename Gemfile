@@ -15,6 +15,7 @@ gem "sprockets-rails"
 group :development, :test do
   gem "debug"
   gem "minitest-mock"
+  gem "redis", ">= 5.0"
   gem "simplecov", require: false
 end
 

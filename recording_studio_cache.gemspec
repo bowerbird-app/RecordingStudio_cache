@@ -9,8 +9,9 @@ Gem::Specification.new do |spec|
   spec.homepage    = "https://github.com/bowerbird-app/RecordingStudio_cache"
   spec.summary     = "App-side Rails.cache primitives for Recording Studio"
   spec.description = "Thin Recording Studio helpers over Rails.cache: recording/root scoped keys, " \
-                     "tree-version invalidation, named TTL policies, and ActiveSupport instrumentation. " \
-                     "Does not publish to Cloudflare/R2 (see RecordingStudioArtifacts)."
+                     "root-generation invalidation, named TTL policies, vary digests, and " \
+                     "ActiveSupport instrumentation. Headless (no UI). Does not publish to " \
+                     "Cloudflare/R2 (see RecordingStudioArtifacts)."
   spec.license     = "MIT"
   spec.required_ruby_version = ">= 3.3.0"
 
@@ -20,7 +21,7 @@ Gem::Specification.new do |spec|
   spec.metadata["rubygems_mfa_required"] = "true"
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"].reject do |path|
+    Dir["{app,config,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"].reject do |path|
       path == ".cursor" || path.start_with?(".cursor/")
     end
   end
