@@ -46,7 +46,7 @@
       option: "namespace",
       default: "rsc",
       dummy: @configuration.namespace,
-      notes: "Key prefix in {namespace}/v1/r/…"
+      notes: "Key prefix in {namespace}/v2/r/…"
     },
     {
       option: "cache_store",
@@ -61,10 +61,16 @@
       notes: "expires_in + race_ttl (race_condition_ttl)"
     },
     {
+      option: "register_entry / entry_policies",
+      default: "{}",
+      dummy: @configuration.entry_policies.inspect,
+      notes: "Entry names never imply a policy on their own"
+    },
+    {
       option: "hooks",
       default: "empty registry",
       dummy: @config_snapshot[:hooks_registered].inspect,
-      notes: "Recording Studio engine hooks (template seam)"
+      notes: "Recording Studio engine hooks"
     }
   ] %>
 
@@ -82,6 +88,7 @@
       RecordingStudioCache.configure do |config|
         config.namespace = #{@configuration.namespace.inspect}
         config.register_policy :api_payload, expires_in: 1.minute, race_ttl: 2.seconds
+        config.register_entry :api_payload, policy: :api_payload
         # config.cache_store = Rails.cache  # optional; nil means Rails.cache
       end
 
@@ -93,7 +100,7 @@
 
   <%= render FlatPack::SectionTitle::Component.new(
     title: "Built-in policies",
-    subtitle: "Entry names can match a policy (e.g. :api_payload). Unknown names fall back to :default."
+    subtitle: "Pass policy: or register_entry — entry names alone use :default."
   ) %>
 
   <% policy_rows = @built_in_policies.map { |name, attrs|
@@ -161,7 +168,7 @@
   <%= render FlatPack::CodeBlock::Component.new(
     language: :ruby,
     code: <<~'CODE'
-      payload = RecordingStudioCache.fetch(recording, :api_payload) do
+      payload = RecordingStudioCache.fetch(recording, :api_payload, policy: :api_payload) do
         expensive_api_payload_for(recording)
       end
 
@@ -169,7 +176,7 @@
       RecordingStudioCache.invalidate_tree!(recording.root_recording_or_self)
 
       # Key shape:
-      # {namespace}/v1/r/{root_id}/tv/{tree_version}/rec/{recording_id}/{entry}
+      # {namespace}/v2/r/{root_id}/rg/{root_generation}/rec/{recording_id}/{entry}
     CODE
   ) %>
 
@@ -192,8 +199,8 @@
       <% card.body do %>
         <dl class="space-y-3 text-sm leading-6">
           <div>
-            <dt class="font-medium">Tree version</dt>
-            <dd><code><%= @tree_version %></code></dd>
+            <dt class="font-medium">Root generation</dt>
+            <dd><code><%= @root_generation %></code></dd>
           </div>
           <div>
             <dt class="font-medium">Cache key</dt>

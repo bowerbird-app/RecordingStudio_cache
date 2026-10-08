@@ -16,7 +16,7 @@ class HomeController < ApplicationController
     return unless @root
 
     @cache_key = RecordingStudioCache.key_for(@root, :api_payload)
-    @tree_version = RecordingStudioCache.tree_version_for(@root)
+    @root_generation = RecordingStudioCache.root_generation_for(@root)
     @payload = RecordingStudioCache.fetch(@root, :api_payload) do
       {
         recording_id: @root.id,
@@ -29,6 +29,6 @@ class HomeController < ApplicationController
     return unless params[:invalidate] == "1"
 
     RecordingStudioCache.invalidate_tree!(@root)
-    redirect_to root_path, notice: "Tree cache version bumped"
+    redirect_to root_path, notice: "Root cache generation replaced"
   end
 end

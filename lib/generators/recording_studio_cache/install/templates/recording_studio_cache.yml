@@ -4,6 +4,8 @@ development:
     api_payload:
       expires_in: 60
       race_ttl: 2
+  entry_policies:
+    api_payload: api_payload
 
 production:
   namespace: rsc
@@ -11,3 +13,5 @@ production:
     api_payload:
       expires_in: 60
       race_ttl: 2
+  entry_policies:
+    api_payload: api_payload

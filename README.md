@@ -1,9 +1,12 @@
 # RecordingStudioCache
 
 App-side cache primitives for Recording Studio hosts and sibling gems. Thin wrappers
-around **Rails.cache** with recording/root scoped keys, tree-version invalidation,
-named TTL policies (including stampede-friendly `race_condition_ttl`), and
-ActiveSupport::Notifications instrumentation.
+around **Rails.cache** with recording/root scoped keys, root-generation invalidation,
+named TTL policies (including stampede-friendly `race_condition_ttl`), first-class
+`vary:` variants, and ActiveSupport::Notifications instrumentation.
+
+Headless gem: add it to the Gemfile, run the install generator for an optional
+initializer/YAML, and call the API. No engine mount, no UI, no migrations.
 
 ## Boundary (read this first)
 
@@ -19,7 +22,7 @@ The host chooses the cache backend.
 **Recommended default on DigitalOcean App Platform:** [Solid Cache](https://github.com/rails/solid_cache)
 (database-backed `Rails.cache`). Redis remains optional later if a host needs it.
 
-## Consumer API
+## Install
 
 ```ruby
 # Gemfile
@@ -29,6 +32,8 @@ gem "recording_studio_cache", github: "bowerbird-app/RecordingStudio_cache"
 
 ```bash
 bin/rails generate recording_studio_cache:install
+# → config/initializers/recording_studio_cache.rb
+# → optional config/recording_studio_cache.yml
 ```
 
 ```ruby
@@ -36,23 +41,41 @@ bin/rails generate recording_studio_cache:install
 RecordingStudioCache.configure do |config|
   config.namespace = "rsc"
   config.register_policy :api_payload, expires_in: 1.minute, race_ttl: 2.seconds
+  # Entry names never imply a policy — map them, or pass policy: per call.
+  config.register_entry :api_payload, policy: :api_payload
 end
 ```
 
+YAML `policies:` merges into the built-ins (keeps `:default` and other defaults
+unless you override a name).
+
+## Consumer API
+
 ```ruby
-payload = RecordingStudioCache.fetch(recording, :api_payload) do
+payload = RecordingStudioCache.fetch(recording, :api_payload, policy: :api_payload) do
   expensive_api_payload_for(recording)
 end
 
-RecordingStudioCache.write(recording, :api_payload, payload)
+# Locale / format variants (digested into the key):
+RecordingStudioCache.fetch(recording, :api_payload, policy: :api_payload, vary: { locale: "en" }) { … }
+
+RecordingStudioCache.write(recording, :api_payload, payload, policy: :api_payload)
 RecordingStudioCache.read(recording, :api_payload)
 RecordingStudioCache.delete(recording, :api_payload)
 
-# After mutating a tree (create/revise/move/trash), bump the root version:
+# After mutating a tree (create/revise/move/trash), replace the root generation:
 RecordingStudioCache.invalidate_tree!(recording.root_recording_or_self)
 ```
 
-Entry names may match a registered policy (`:api_payload`). Override per call:
+Unknown keyword options raise `ArgumentError`. Entry must be a `Symbol` or `String`.
+
+Policy resolution order:
+
+1. Explicit `policy:` on the call
+2. Entry→policy registry (`register_entry` / YAML `entry_policies`)
+3. Built-in `:default`
+
+Per-call TTL overrides still work:
 
 ```ruby
 RecordingStudioCache.fetch(recording, :stats, policy: :short) { … }
@@ -62,18 +85,26 @@ RecordingStudioCache.fetch(recording, :stats, expires_in: 10.seconds, race_ttl: 
 ### Key shape
 
 ```
-{namespace}/v1/r/{root_id}/tv/{tree_version}/rec/{recording_id}/{entry}
+{namespace}/v2/r/{root_id}/rg/{root_generation}/rec/{recording_id}/{entry}
+{namespace}/v2/r/{root_id}/rg/{root_generation}/rec/{recording_id}/{entry}/v/{vary_digest}
 ```
 
-Example: `rsc/v1/r/43a6…/tv/3/rec/9f2c…/api_payload`
+Example: `rsc/v2/r/43a6…/rg/550e8400-e29b-41d4-a716-446655440000/rec/9f2c…/api_payload`
 
 - **root** — `recording.root_recording_or_self` id (workspace tree)
-- **tree version** — integer token in Rails.cache at `{namespace}/v1/r/{root_id}/tv`
+- **root generation** — opaque UUID token in Rails.cache at `{namespace}/v2/r/{root_id}/rg`
 - **recording** — the recording the payload belongs to
 - **entry** — logical name (`:api_payload`, `:nav`, …)
+- **vary digest** — first 16 hex chars of SHA256 over stable sorted JSON pairs from `vary:`
 
-`invalidate_tree!` increments the tree-version token. Old keys become unreachable;
-no need to delete every entry under the root.
+`invalidate_tree!` writes a new random generation token. Old keys become unreachable;
+no need to delete every entry under the root. Generation keys are written without
+`expires_in` (see module docs if the store applies a global TTL).
+
+Public helpers:
+
+- `RecordingStudioCache.root_generation_for(recording)`
+- `RecordingStudioCache.key_for(recording, entry, root_generation: nil, vary: nil)`
 
 ### Built-in policies
 
@@ -92,9 +123,10 @@ Subscribe with ActiveSupport::Notifications:
 - `read.recording_studio_cache`
 - `write.recording_studio_cache`
 - `delete.recording_studio_cache`
-- `invalidate_tree.recording_studio_cache`
+- `invalidate_tree.recording_studio_cache` (payload includes `root_generation`)
 
-Fetch/read payloads include `key`, `entry`, `policy`, `root_id`, `recording_id`, and `hit`.
+Fetch/read payloads include `key`, `entry`, `policy`, `root_id`, `recording_id`, `vary`, and `hit`.
+Read `hit` uses `exist?` so a cached `nil` is still a hit.
 
 ```ruby
 ActiveSupport::Notifications.subscribe(/recording_studio_cache/) do |name, start, finish, _id, payload|
@@ -138,5 +170,5 @@ bundle exec rubocop
 bundle exec rake test:all
 ```
 
-Engine install/config conventions from the gem template remain under
-`docs/gem_template/` as architectural reference.
+CI runs the suite against PostgreSQL and a Redis service container (concurrent
+root-generation tests).

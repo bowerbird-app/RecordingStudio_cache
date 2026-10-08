@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-08
+
+### Changed
+- Root generation replaces integer tree versions. Public API: `root_generation_for`,
+  `key_for(..., root_generation:)`, invalidate payload `root_generation`, key segment `rg`.
+- Key schema bumped to `SCHEMA_VERSION = 2` (abandons `v1` / `tv` keys).
+- Generation tokens are opaque UUIDs written with `unless_exist: true` on seed (no
+  `increment`). Concurrent invalidation no longer races through a non-atomic fallback.
+- Entry names no longer select a policy. Use `policy:` or `register_entry` /
+  YAML `entry_policies`. Unknown keyword options raise `ArgumentError`.
+- YAML / `policies=` merges into built-in policies (keeps `:default`) instead of replacing them.
+- Headless install: no engine mount, no Tailwind `@source` steps, no migrations generator,
+  no example capability, no engine `HomeController` routes.
+
+### Added
+- First-class `vary:` hash on fetch/read/write/delete/exist? (stable digest key segment `/v/{digest}`).
+- Redis-backed CI service + concurrent invalidation / key-loss coverage.
+- Read instrumentation `hit` uses `exist?` so cached `nil` is not reported as a miss.
+
+### Removed
+- `TreeVersion` / `tree_version_for` / `key_for(tree_version:)` / `tv` key segment.
+- Template example capability, pages migration, migrations generator, `docs/gem_template/`.
+- Committed `coverage/` and `test/dummy/coverage/` (gitignored).
+
+### Upgrade notes
+- Bump to `0.4.0`. Old `v1` cache keys are abandoned; no migration of Redis/Solid Cache keys.
+- Replace `tree_version_for` with `root_generation_for` and `key_for(..., tree_version:)` with
+  `root_generation:`. Treat generation values as opaque strings, not integers.
+- Pass `policy:` or `register_entry` for non-default TTLs (`:api_payload` as an entry name
+  alone no longer picks the `:api_payload` policy).
+- Re-run `bin/rails generate recording_studio_cache:install` if you relied on engine mount
+  or Tailwind `@source` lines from the old generator — remove those host lines; install is
+  gem + optional initializer/YAML only.
+
 ## [0.3.0] - 2026-10-07
 
 ### Added
@@ -123,8 +157,10 @@ New addons copied from this template are born on Recording Studio 4.x.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/recording_studio_cache/compare/v0.2.3...HEAD
-[0.2.3]: https://github.com/bowerbird-app/recording_studio_cache/releases/tag/v0.2.3
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.4.0
+[0.3.0]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.3.0
+[0.2.3]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.2.3
 [0.2.2]: https://github.com/bowerbird-app/recording_studio_cache/releases/tag/v0.2.2
 [0.2.1]: https://github.com/bowerbird-app/recording_studio_cache/releases/tag/v0.2.1
 [0.2.0]: https://github.com/bowerbird-app/recording_studio_cache/releases/tag/v0.2.0

@@ -8,6 +8,7 @@
 - Accessible dummy tag `v0.10.1` and Root Switchable dummy tag `v0.5.1`
 - FlatPack dummy tag `v0.1.196`
 - Public RubyGems and GitHub access for dependency installation
+- For Redis-backed generation tests: `REDIS_URL` and the `redis` gem (dev/test)
 
 ## Verification
 

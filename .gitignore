@@ -52,5 +52,13 @@ test/dummy/config/credentials/*.key
 *.gem
 pkg/
 
+# Coverage
+coverage/
+test/dummy/coverage/
+**/coverage/
+
 # Rename script state
 .rename_state.yml
+
+# Redis dump
+dump.rdb

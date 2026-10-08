@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
 RecordingStudioCache::Engine.routes.draw do
-  root "home#index"
+  # Headless gem — no engine UI routes.
 end

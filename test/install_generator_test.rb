@@ -10,13 +10,10 @@ class InstallGeneratorTest < Minitest::Test
     "../lib/generators/recording_studio_cache/install/templates/INSTALL.md",
     __dir__
   )
-
-  def with_temp_app
-    Dir.mktmpdir do |dir|
-      FileUtils.mkdir_p(File.join(dir, "app/assets/tailwind"))
-      yield dir
-    end
-  end
+  INITIALIZER_TEMPLATE_PATH = File.expand_path(
+    "../lib/generators/recording_studio_cache/install/templates/recording_studio_cache_initializer.rb",
+    __dir__
+  )
 
   def build_generator(destination_root, options = {})
     RecordingStudioCache::Generators::InstallGenerator.new(
@@ -26,100 +23,13 @@ class InstallGeneratorTest < Minitest::Test
     )
   end
 
-  def test_mount_engine_uses_configured_mount_path
-    generator = build_generator("/tmp", mount_path: "/addons/recording")
-    routes = []
+  def test_generator_has_no_mount_or_tailwind_steps
+    methods = RecordingStudioCache::Generators::InstallGenerator.instance_methods(false)
 
-    generator.stub(:route, ->(value) { routes << value }) do
-      generator.mount_engine
-    end
-
-    assert_equal ["mount RecordingStudioCache::Engine, at: \"/addons/recording\""], routes
-  end
-
-  def test_add_tailwind_source_injects_engine_and_flatpack_sources
-    with_temp_app do |dir|
-      css_path = File.join(dir, "app/assets/tailwind/application.css")
-      File.write(css_path, "@import \"tailwindcss\";\n")
-
-      generator = build_generator(dir)
-
-      Rails.stub(:root, Pathname.new(dir)) do
-        generator.stub(:say, nil) do
-          generator.add_tailwind_source
-        end
-      end
-
-      css = File.read(css_path)
-      assert_tailwind_sources_present(css)
-    end
-  end
-
-  def test_add_tailwind_source_does_not_duplicate_existing_entries
-    with_temp_app do |dir|
-      css_path = File.join(dir, "app/assets/tailwind/application.css")
-      File.write(css_path, <<~CSS)
-        @import "tailwindcss";
-        @source "../../vendor/bundle/**/recording_studio_cache/app/views/**/*.erb";
-        @source "../../../../../../usr/local/bundle/ruby/**/bundler/gems/recording_studio_cache-*/app/views/**/*.erb";
-        @source "../../vendor/bundle/**/flatpack/app/components/**/*.{rb,erb}";
-        @source "../../../../../../usr/local/bundle/ruby/**/bundler/gems/flatpack-*/app/components/**/*.{rb,erb}";
-      CSS
-
-      generator = build_generator(dir)
-
-      Rails.stub(:root, Pathname.new(dir)) do
-        generator.stub(:say, nil) do
-          generator.add_tailwind_source
-        end
-      end
-
-      css = File.read(css_path)
-      assert_tailwind_sources_present(css)
-      assert_tailwind_sources_count(css, 1)
-    end
-  end
-
-  def test_add_tailwind_source_reports_missing_tailwind_config
-    with_temp_app do |dir|
-      FileUtils.rm_rf(File.join(dir, "app/assets/tailwind"))
-      generator = build_generator(dir)
-      messages = []
-
-      Rails.stub(:root, Pathname.new(dir)) do
-        generator.stub(:say, ->(message, color = nil) { messages << [message, color] }) do
-          generator.add_tailwind_source
-        end
-      end
-
-      assert_includes messages, ["Tailwind CSS not detected. Skipping Tailwind configuration.", :yellow]
-      assert_includes messages, ["If you use Tailwind, add these lines to your Tailwind CSS config:", :yellow]
-      tailwind_source_lines.each do |line|
-        assert_includes messages, ["  #{line}", :yellow]
-      end
-    end
-  end
-
-  def test_add_tailwind_source_reports_manual_configuration_when_import_is_missing
-    with_temp_app do |dir|
-      css_path = File.join(dir, "app/assets/tailwind/application.css")
-      File.write(css_path, "@source \"../local/**/*.erb\";\n")
-      generator = build_generator(dir)
-      messages = []
-
-      Rails.stub(:root, Pathname.new(dir)) do
-        generator.stub(:say, ->(message, color = nil) { messages << [message, color] }) do
-          generator.add_tailwind_source
-        end
-      end
-
-      assert_equal "@source \"../local/**/*.erb\";\n", File.read(css_path)
-      assert_includes messages, ["Could not find @import \"tailwindcss\" in your Tailwind config.", :yellow]
-      assert_includes messages, ["Please manually add these lines to your Tailwind CSS config:", :yellow]
-      tailwind_source_lines.each do |line|
-        assert_includes messages, ["  #{line}", :yellow]
-      end
-    end
+    refute_includes methods, :mount_engine
+    refute_includes methods, :add_tailwind_source
+    assert_includes methods, :copy_initializer
+    assert_includes methods, :add_yaml_config
   end
 
   def test_show_readme_displays_install_guide_for_invoke_behavior
@@ -141,30 +51,25 @@ class InstallGeneratorTest < Minitest::Test
     assert_includes install_guide, "Solid Cache"
     assert_includes install_guide, "RecordingStudioCache.fetch"
     assert_includes install_guide, "invalidate_tree!"
+    assert_includes install_guide, "register_entry"
+    assert_includes install_guide, "headless"
     assert_includes install_guide, "RecordingStudioArtifacts"
     refute_includes install_guide, "RecordingStudio v3"
+    refute_match(/mount RecordingStudioCache/, install_guide)
   end
 
-  private
+  def test_initializer_template_documents_entry_registry
+    contents = File.read(INITIALIZER_TEMPLATE_PATH)
 
-  def assert_tailwind_sources_present(css)
-    tailwind_source_lines.each do |line|
-      assert_includes css, line
-    end
+    assert_includes contents, "register_entry"
+    assert_includes contents, "Entry names do not imply a policy"
   end
 
-  def assert_tailwind_sources_count(css, count)
-    tailwind_source_lines.each do |line|
-      assert_equal count, css.scan(line).size
-    end
-  end
-
-  def tailwind_source_lines
-    [
-      '@source "../../vendor/bundle/**/recording_studio_cache/app/views/**/*.erb";',
-      '@source "../../../../../../usr/local/bundle/ruby/**/bundler/gems/recording_studio_cache-*/app/views/**/*.erb";',
-      '@source "../../vendor/bundle/**/flatpack/app/components/**/*.{rb,erb}";',
-      '@source "../../../../../../usr/local/bundle/ruby/**/bundler/gems/flatpack-*/app/components/**/*.{rb,erb}";'
-    ]
+  def test_migrations_generator_removed
+    path = File.expand_path(
+      "../lib/generators/recording_studio_cache/migrations/migrations_generator.rb",
+      __dir__
+    )
+    refute File.exist?(path)
   end
 end
