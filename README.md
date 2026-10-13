@@ -162,9 +162,11 @@ result = RecordingStudioCache::RateLimiter.new(
   backend: :rails_cache,   # :null | :rails_cache | :redis
   strategy: :fixed,        # :fixed calendar bucket | :ttl rolling key
   store: Rails.cache,      # rails_cache only
-  redis: redis_client,     # redis only
+  redis: redis_client,     # required for :redis (must respond to incr + eval)
   fail_closed: false,
-  prefix: "rsc:rate"
+  prefix: "rsc:rate",
+  separator: ":",          # join for prefix/key(/bucket); use "/" for Oauth-style keys
+  storage_key: nil         # optional exact base key (skips prefix/key join)
 ).throttle
 
 result.allowed?      # under the limit?
@@ -175,8 +177,16 @@ result.count         # hits after this call
 
 Class helpers: `RateLimiter.throttle(...)` → `Result`, `RateLimiter.allow?(...)` → boolean.
 
-`limit <= 0` disables throttling (always allowed). Backend errors follow Embeddable:
-allow when `fail_closed: false`, block when `fail_closed: true`.
+`limit <= 0` disables throttling (always allowed). Backend connection/IO errors follow
+Embeddable: allow when `fail_closed: false`, block when `fail_closed: true`.
+Programming errors (`ArgumentError`, etc.) are not swallowed.
+
+`backend: :redis` raises `ArgumentError` unless `redis:` responds to `incr` (same message
+if the optional `redis` gem cannot be loaded). Redis increments use one Lua `EVAL`
+(INCR + EXPIRE only when `count == 1`) so `:ttl` windows are not refreshed by blocked hits.
+
+Key shape: `prefix + separator + key` (+ `separator + bucket` for `:fixed`). For exact
+legacy keys, pass `separator: "/"` or `storage_key: "recording_studio_oauth/register/1.2.3.4"`.
 
 ### Sibling gem mapping
 
@@ -189,7 +199,7 @@ limiter; siblings switch in follow-up PRs):
 | **Downloadable** `RateLimiter` | per bucket `action:bucket:id` (ip / actor / recording) | each bucket’s `limit` / `period` | `:rails_cache` + config `cache_store`; **`:fixed`**; `prefix: "rs_downloadable:rate"` |
 | **RootSwitchable** `SwitchRateLimiter` | `actor_identity:device_key` | config `switch_rate_limit` | `:rails_cache`; **`:ttl`**; `prefix: "recording_studio_root_switchable:switch_rate"` |
 | **Users** `OtpRateLimiter` | `scope:key` (e.g. `resend:…`) | `limit: 1`, cooldown as `period` | `:rails_cache`; **`:ttl`**; `prefix: "recording_studio_user:otp"` — block ⇒ raise their `RateLimited` |
-| **Oauth** `RegisterRateLimit` | client IP (`"unknown"` if blank) | `self_registered_apps_per_minute` / `1.minute` | `:rails_cache` (+ injectable store); **`:ttl`**; `prefix: "recording_studio_oauth/register"` |
+| **Oauth** `RegisterRateLimit` | client IP (`"unknown"` if blank) | `self_registered_apps_per_minute` / `1.minute` | `:rails_cache` (+ injectable store); **`:ttl`**; `prefix: "recording_studio_oauth/register"`, `separator: "/"` (or `storage_key: "recording_studio_oauth/register/#{ip}"`) |
 
 ## Dummy app
 

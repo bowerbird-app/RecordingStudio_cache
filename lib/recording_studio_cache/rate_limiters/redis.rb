@@ -2,35 +2,32 @@
 
 module RecordingStudioCache
   module RateLimiters
-    # Counter backed by a Redis-compatible client (+incr+ / +expire+).
+    # Counter backed by a Redis-compatible client.
     #
-    # Pass a client via +redis:+. The +redis+ gem is never required at boot; call
-    # {require_redis!} only when you need to construct a real +::Redis+ client.
+    # Uses one Lua +EVAL+ so +INCR+ and the first-hit +EXPIRE+ are atomic, and
+    # later hits do not refresh the TTL (matches rails_cache +:ttl+ windows).
+    # Pass a client via +redis:+ that responds to +eval+ (or +incr+ for the
+    # constructor check). The +redis+ gem is never required at boot.
     class Redis
-      def initialize(redis: nil)
+      # KEYS[1] = storage key, ARGV[1] = expires_in seconds
+      # Returns { count, ttl }. EXPIRE only when this INCR created the key.
+      INCR_EXPIRE_SCRIPT = <<~LUA
+        local count = redis.call('INCR', KEYS[1])
+        if count == 1 then
+          redis.call('EXPIRE', KEYS[1], ARGV[1])
+        end
+        local ttl = redis.call('TTL', KEYS[1])
+        return { count, ttl }
+      LUA
+
+      def initialize(redis:)
         @redis = redis
       end
 
       def increment(storage_key, expires_in:)
-        client = @redis
-        return { count: 0, retry_after: nil } unless client.respond_to?(:incr)
-
-        count = client.incr(storage_key)
-        client.expire(storage_key, expires_in.to_i) if client.respond_to?(:expire) && expires_in.to_i.positive?
-
-        retry_after = remaining_ttl(client, storage_key, expires_in)
+        count, ttl = eval_incr_expire(storage_key, expires_in.to_i)
+        retry_after = ttl.to_i.negative? ? expires_in.to_i : ttl.to_i
         { count: count.to_i, retry_after: retry_after }
-      end
-
-      private
-
-      def remaining_ttl(client, storage_key, expires_in)
-        return expires_in.to_i unless client.respond_to?(:ttl)
-
-        ttl = client.ttl(storage_key).to_i
-        return expires_in.to_i if ttl.negative?
-
-        ttl
       end
 
       class << self
@@ -39,6 +36,13 @@ module RecordingStudioCache
 
           require "redis"
         end
+      end
+
+      private
+
+      def eval_incr_expire(storage_key, expires_in)
+        result = @redis.eval(INCR_EXPIRE_SCRIPT, keys: [storage_key], argv: [expires_in])
+        Array(result)
       end
     end
   end

@@ -14,14 +14,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `:rails_cache`, and `:redis` backends (ported from RecordingStudioEmbeddable
   semantics). Returns `allowed?` / `blocked?`, `retry_after`, and `count`.
 - Strategies: `:fixed` (calendar window bucket) and `:ttl` (rolling key expiry).
+- `separator:` (default `":"`) and `storage_key:` so sibling gems can preserve
+  legacy key shapes (e.g. Oauth `recording_studio_oauth/register/#{ip}`).
 - README mapping for Embeddable, Downloadable, RootSwitchable, Users OTP, and
   Oauth register limiters.
 
+### Fixed
+- `backend: :redis` without a client that responds to `incr` raises `ArgumentError`
+  (including when the optional `redis` gem is missing) instead of silently allowing.
+- Redis counters use one Lua `EVAL`: `INCR`, `EXPIRE` only when `count == 1`, return
+  count + TTL — blocked `:ttl` hits no longer extend the window, and a crash cannot
+  leave a key without TTL between separate INCR/EXPIRE calls.
+
 ### Upgrade notes
 - Bump to `0.5.0`. No breaking changes to the existing fetch/invalidate API.
-- Redis stays optional: only pass `backend: :redis` with a client that responds
-  to `incr` (and ideally `expire` / `ttl`). The `redis` gem is not a runtime
-  dependency of this gem.
+- Redis stays optional: `backend: :redis` requires `redis:` responding to `incr`
+  (and `eval` for the atomic script). The `redis` gem is not a runtime dependency.
+- `fail_closed` applies only to connection/IO/timeout (and `Redis::BaseError` when
+  the gem is loaded); `ArgumentError` and other programming errors propagate.
 - Sibling gems can switch their local limiters to this API in follow-up PRs;
   this release only adds the shared primitive.
 

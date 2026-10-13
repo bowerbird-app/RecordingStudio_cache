@@ -91,6 +91,57 @@ class RateLimiterTest < Minitest::Test
     assert RecordingStudioCache::RateLimiter.allow?(**opts)
   end
 
+  def test_fixed_window_uses_epoch_bucket_in_storage_key
+    travel_to Time.zone.parse("2026-10-13 12:00:30 UTC")
+    epoch = Time.zone.now.to_i
+    period = 60
+    bucket = epoch / period
+
+    RecordingStudioCache::RateLimiter.throttle(
+      key: "bucketed",
+      limit: 5,
+      period: period,
+      backend: :rails_cache,
+      store: @memory,
+      strategy: :fixed,
+      prefix: "rsc:rate"
+    )
+
+    expected = "rsc:rate:bucketed:#{bucket}"
+    assert @memory.exist?(expected), "expected cache key #{expected}"
+
+    travel_to Time.zone.parse("2026-10-13 12:01:30 UTC")
+    next_bucket = Time.zone.now.to_i / period
+    refute_equal bucket, next_bucket
+
+    RecordingStudioCache::RateLimiter.throttle(
+      key: "bucketed",
+      limit: 5,
+      period: period,
+      backend: :rails_cache,
+      store: @memory,
+      strategy: :fixed,
+      prefix: "rsc:rate"
+    )
+    assert @memory.exist?("rsc:rate:bucketed:#{next_bucket}")
+  end
+
+  def test_fixed_window_retry_after_is_seconds_until_next_bucket
+    travel_to Time.zone.parse("2026-10-13 12:00:45 UTC")
+
+    opts = { key: "retry", limit: 1, period: 60, backend: :rails_cache, store: @memory, strategy: :fixed }
+    assert RecordingStudioCache::RateLimiter.allow?(**opts)
+    blocked = RecordingStudioCache::RateLimiter.throttle(**opts)
+
+    assert blocked.blocked?
+    assert_equal 15, blocked.retry_after
+
+    travel_to Time.zone.parse("2026-10-13 12:00:59 UTC")
+    blocked_again = RecordingStudioCache::RateLimiter.throttle(**opts)
+    assert blocked_again.blocked?
+    assert_equal 1, blocked_again.retry_after
+  end
+
   def test_ttl_strategy_blocks_until_key_expires
     travel_to Time.zone.parse("2026-10-13 12:00:00 UTC")
 
@@ -117,10 +168,10 @@ class RateLimiterTest < Minitest::Test
     end
   end
 
-  def test_fail_closed_blocks_when_store_raises
+  def test_fail_closed_blocks_when_store_raises_connection_error
     broken = Object.new
     def broken.increment(*)
-      raise "cache down"
+      raise Errno::ECONNREFUSED, "cache down"
     end
 
     open_result = RecordingStudioCache::RateLimiter.throttle(
@@ -145,6 +196,50 @@ class RateLimiterTest < Minitest::Test
     assert_equal 60, closed_result.retry_after
   end
 
+  def test_programming_errors_are_not_swallowed_by_fail_closed
+    broken = Object.new
+    def broken.increment(*)
+      raise ArgumentError, "bad cache call"
+    end
+
+    assert_raises(ArgumentError) do
+      RecordingStudioCache::RateLimiter.throttle(
+        key: "err",
+        limit: 1,
+        period: 60,
+        backend: :rails_cache,
+        store: broken,
+        fail_closed: true
+      )
+    end
+  end
+
+  def test_redis_backend_requires_incr_client
+    error = assert_raises(ArgumentError) do
+      RecordingStudioCache::RateLimiter.new(
+        key: "x",
+        limit: 1,
+        period: 60,
+        backend: :redis,
+        redis: nil,
+        fail_closed: true
+      )
+    end
+    assert_match(/redis: client that responds to incr/, error.message)
+
+    error = assert_raises(ArgumentError) do
+      RecordingStudioCache::RateLimiter.new(
+        key: "x",
+        limit: 1,
+        period: 60,
+        backend: :redis,
+        redis: Object.new,
+        fail_closed: true
+      )
+    end
+    assert_match(/redis: client that responds to incr/, error.message)
+  end
+
   def test_redis_backend_with_fake_client
     redis = FakeRedis.new
     opts = { key: "r", limit: 2, period: 60, backend: :redis, redis: redis }
@@ -154,7 +249,86 @@ class RateLimiterTest < Minitest::Test
     result = RecordingStudioCache::RateLimiter.throttle(**opts)
     assert result.blocked?
     assert_equal 3, result.count
-    assert_equal 60, redis.ttls.values.first
+    assert_equal 1, redis.expire_calls
+  end
+
+  def test_redis_ttl_blocked_hits_do_not_extend_window_like_rails_cache
+    travel_to Time.zone.parse("2026-10-13 12:00:00 UTC")
+    redis = FakeRedis.new
+    period = 3
+
+    redis_opts = {
+      key: "ttl-parity",
+      limit: 1,
+      period: period,
+      backend: :redis,
+      redis: redis,
+      strategy: :ttl,
+      prefix: "parity"
+    }
+    rails_opts = {
+      key: "ttl-parity",
+      limit: 1,
+      period: period,
+      backend: :rails_cache,
+      store: @memory,
+      strategy: :ttl,
+      prefix: "parity"
+    }
+
+    redis_results = []
+    rails_results = []
+
+    [0, 2, 4].each do |offset|
+      travel_to Time.zone.parse("2026-10-13 12:00:00 UTC") + offset.seconds
+      redis_results << RecordingStudioCache::RateLimiter.allow?(**redis_opts)
+      rails_results << RecordingStudioCache::RateLimiter.allow?(**rails_opts)
+    end
+
+    assert_equal [true, false, true], rails_results
+    assert_equal [true, false, true], redis_results
+    assert_equal rails_results, redis_results
+    assert_equal 2, redis.expire_calls
+  end
+
+  def test_separator_and_storage_key_preserve_oauth_style_keys
+    RecordingStudioCache::RateLimiter.throttle(
+      key: "1.1.1.1",
+      limit: 5,
+      period: 60,
+      backend: :rails_cache,
+      store: @memory,
+      strategy: :ttl,
+      prefix: "recording_studio_oauth/register",
+      separator: "/"
+    )
+    assert @memory.exist?("recording_studio_oauth/register/1.1.1.1")
+
+    RecordingStudioCache::RateLimiter.throttle(
+      storage_key: "recording_studio_oauth/register/2.2.2.2",
+      limit: 5,
+      period: 60,
+      backend: :rails_cache,
+      store: @memory,
+      strategy: :ttl
+    )
+    assert @memory.exist?("recording_studio_oauth/register/2.2.2.2")
+  end
+
+  def test_storage_key_fixed_strategy_still_appends_bucket
+    travel_to Time.zone.parse("2026-10-13 12:00:00 UTC")
+    bucket = Time.zone.now.to_i / 60
+
+    RecordingStudioCache::RateLimiter.throttle(
+      storage_key: "custom/base",
+      limit: 5,
+      period: 60,
+      backend: :rails_cache,
+      store: @memory,
+      strategy: :fixed,
+      separator: "/"
+    )
+    assert @memory.exist?("custom/base/#{bucket}")
   end
 
   def test_memory_store_concurrent_increments_do_not_lose_counts
@@ -200,25 +374,52 @@ class RateLimiterTest < Minitest::Test
     assert RecordingStudioCache::RateLimiter.allow?(**opts)
   end
 
-  # Minimal Redis duck type used when the redis gem is not needed.
+  # Minimal Redis duck type: +incr+ for construction, +eval+ for atomic INCR/EXPIRE.
   class FakeRedis
-    attr_reader :ttls
+    attr_reader :expire_calls
 
     def initialize
-      @data = Hash.new(0)
-      @ttls = {}
+      @data = {}
+      @expires_at = {}
+      @expire_calls = 0
     end
 
-    def incr(key)
-      @data[key] += 1
+    def incr(_key)
+      raise "use eval"
     end
 
-    def expire(key, seconds)
-      @ttls[key] = seconds
+    def eval(_script, keys:, argv:)
+      key = keys.fetch(0)
+      expires_in = argv.fetch(0).to_i
+      purge_expired!(key)
+
+      @data[key] = @data.fetch(key, 0) + 1
+      count = @data[key]
+      if count == 1
+        @expires_at[key] = Time.now.to_f + expires_in
+        @expire_calls += 1
+      end
+
+      [count, remaining_ttl(key)]
     end
 
-    def ttl(key)
-      @ttls.fetch(key, -1)
+    private
+
+    def purge_expired!(key)
+      expires_at = @expires_at[key]
+      return if expires_at.nil?
+      return if expires_at > Time.now.to_f
+
+      @data.delete(key)
+      @expires_at.delete(key)
+    end
+
+    def remaining_ttl(key)
+      expires_at = @expires_at[key]
+      return -1 if expires_at.nil?
+
+      ttl = (expires_at - Time.now.to_f).ceil
+      ttl.positive? ? ttl : -1
     end
   end
 end

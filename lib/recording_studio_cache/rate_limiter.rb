@@ -24,8 +24,22 @@ module RecordingStudioCache
     BACKENDS = %i[null rails_cache redis].freeze
     STRATEGIES = %i[fixed ttl].freeze
     DEFAULT_PREFIX = "rsc:rate"
+    DEFAULT_SEPARATOR = ":"
+    REDIS_CLIENT_REQUIRED = "backend: :redis requires a redis: client that responds to incr"
 
-    attr_reader :key, :limit, :period, :backend, :strategy, :prefix, :fail_closed
+    # Connection / store failures that follow +fail_closed+ (not programming errors).
+    BACKEND_ERRORS = [
+      Errno::ECONNREFUSED,
+      Errno::ECONNRESET,
+      Errno::ETIMEDOUT,
+      Errno::EPIPE,
+      Errno::EHOSTUNREACH,
+      SocketError,
+      IOError,
+      Timeout::Error
+    ].freeze
+
+    attr_reader :key, :limit, :period, :backend, :strategy, :prefix, :separator, :fail_closed
 
     class << self
       # @return [RateLimiters::Result]
@@ -39,16 +53,18 @@ module RecordingStudioCache
       end
     end
 
-    # @param key [String] caller-owned bucket identity (IP, actor, digest, …)
+    # @param key [String] caller-owned bucket identity (optional when +storage_key:+ set)
     # @param limit [Integer] max allowed hits in the window; +<= 0+ disables limiting
     # @param period [Integer] window length in seconds (alias: +window:+)
     # @param window [Integer] alias for +period:+ (Embeddable naming)
     # @param backend [Symbol] +:null+, +:rails_cache+, or +:redis+
     # @param strategy [Symbol] +:fixed+ (calendar bucket) or +:ttl+ (rolling key TTL)
     # @param store [ActiveSupport::Cache::Store, nil] rails_cache store override
-    # @param redis [#incr, nil] redis client (required for a reliable redis backend)
+    # @param redis [#incr, #eval] redis client (required when +backend: :redis+)
     # @param fail_closed [Boolean] when the backend errors, block if true (Embeddable)
     # @param prefix [String] storage key prefix before +key+ / window segment
+    # @param separator [String] join between prefix, key, and fixed-window bucket (default +":"+)
+    # @param storage_key [String, nil] exact base key (skips prefix/key join); fixed still appends bucket
     def initialize(**options)
       assign_options!(options)
       validate!
@@ -64,7 +80,7 @@ module RecordingStudioCache
       epoch = now_epoch
       payload = @backend_instance.increment(storage_key_for(epoch), expires_in: period)
       build_result(payload, epoch)
-    rescue StandardError
+    rescue *backend_errors
       failure_result
     end
 
@@ -75,16 +91,26 @@ module RecordingStudioCache
 
     private
 
-    def assign_options!(options) # rubocop:disable Metrics/AbcSize
-      @key = options.fetch(:key).to_s
+    def assign_options!(options)
+      assign_core_options!(options)
+      assign_key_options!(options)
+      @store = options[:store]
+      @redis = options[:redis]
+    end
+
+    def assign_core_options!(options)
       @limit = options.fetch(:limit).to_i
       @period = (options[:period].nil? ? options[:window] : options[:period])
       @backend = (options[:backend] || :rails_cache).to_sym
       @strategy = (options[:strategy] || :fixed).to_sym
       @fail_closed = options.fetch(:fail_closed, false) ? true : false
+    end
+
+    def assign_key_options!(options)
+      @key = options.key?(:key) ? options[:key].to_s : nil
       @prefix = (options[:prefix] || DEFAULT_PREFIX).to_s
-      @store = options[:store]
-      @redis = options[:redis]
+      @separator = options.fetch(:separator, DEFAULT_SEPARATOR).to_s
+      @storage_key = options[:storage_key]&.to_s
     end
 
     def build_result(payload, epoch)
@@ -103,10 +129,16 @@ module RecordingStudioCache
       raise ArgumentError, "period: or window: is required" if @period.nil?
 
       @period = @period.to_i
-      raise ArgumentError, "key must be present" if @key.strip.empty?
       raise ArgumentError, "period must be positive" unless @period.positive?
       raise ArgumentError, "unknown backend: #{@backend}" unless BACKENDS.include?(@backend)
       raise ArgumentError, "unknown strategy: #{@strategy}" unless STRATEGIES.include?(@strategy)
+      raise ArgumentError, "key: or storage_key: is required" if base_key_blank?
+    end
+
+    def base_key_blank?
+      return @storage_key.strip.empty? if @storage_key
+
+      @key.nil? || @key.strip.empty?
     end
 
     def build_backend
@@ -117,16 +149,30 @@ module RecordingStudioCache
         RateLimiters::RailsCache.new(store: @store)
       when :redis
         require "recording_studio_cache/rate_limiters/redis"
+        ensure_redis_client!
         RateLimiters::Redis.new(redis: @redis)
       end
     end
 
+    def ensure_redis_client!
+      return if @redis.respond_to?(:incr)
+
+      begin
+        RateLimiters::Redis.require_redis!
+      rescue LoadError
+        raise ArgumentError, REDIS_CLIENT_REQUIRED
+      end
+
+      raise ArgumentError, REDIS_CLIENT_REQUIRED
+    end
+
     def storage_key_for(epoch)
+      base = @storage_key.presence || [@prefix, @key].join(@separator)
       case strategy
       when :fixed
-        "#{prefix}:#{key}:#{epoch / period}"
+        "#{base}#{@separator}#{epoch / period}"
       when :ttl
-        "#{prefix}:#{key}"
+        base
       end
     end
 
@@ -165,6 +211,12 @@ module RecordingStudioCache
         allowed: !fail_closed,
         retry_after: fail_closed ? period : nil
       )
+    end
+
+    def backend_errors
+      errors = BACKEND_ERRORS.dup
+      errors << ::Redis::BaseError if defined?(::Redis::BaseError)
+      errors
     end
   end
 end
