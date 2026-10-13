@@ -5,8 +5,9 @@
 - Ruby 3.3 or newer
 - Rails 8.1 or newer
 - Recording Studio 4.x (`~> 4.2` in the gemspec; dummy GitHub tag `v4.5.0`)
-- Accessible dummy tag `v0.15.0` and Root Switchable dummy tag `v0.8.0`
-- Metrics dummy tag `v0.2.0` (required by Root Switchable `~> 0.2`; not on RubyGems)
+- Accessible dummy tag `v0.17.0` and Root Switchable dummy tag `v0.9.0`
+- Trashable dummy tag `v0.10.0` (`require: false`; Accessible 0.17 query-only)
+- Metrics dummy tag `v0.2.0` (required by Root Switchable / Trashable `~> 0.2`; not on RubyGems)
 - FlatPack dummy tag `v0.1.196`
 - Public RubyGems and GitHub access for dependency installation
 - For Redis-backed generation tests: `REDIS_URL` and the `redis` gem (dev/test)
