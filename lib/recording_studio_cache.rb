@@ -11,6 +11,7 @@ require "recording_studio_cache/root_generation"
 require "recording_studio_cache/store"
 require "recording_studio_cache/engine"
 require "recording_studio_cache/configuration"
+require "recording_studio_cache/rate_limiter"
 
 # App-side cache primitives over Rails.cache for Recording Studio hosts and addons.
 #

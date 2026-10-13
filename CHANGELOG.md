@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-13
+
+### Added
+- `RecordingStudioCache::RateLimiter` — shared rate limiter with `:null`,
+  `:rails_cache`, and `:redis` backends (ported from RecordingStudioEmbeddable
+  semantics). Returns `allowed?` / `blocked?`, `retry_after`, and `count`.
+- Strategies: `:fixed` (calendar window bucket) and `:ttl` (rolling key expiry).
+- `separator:` (default `":"`) and `storage_key:` so sibling gems can preserve
+  legacy key shapes (e.g. Oauth `recording_studio_oauth/register/#{ip}`).
+- `rescue_errors:` (default: connection/IO/timeout + `Redis::BaseError` when
+  loaded). Pass `[StandardError]` for Embeddable / Downloadable / RootSwitchable.
+- README mapping for Embeddable, Downloadable, RootSwitchable, Users OTP, and
+  Oauth register limiters (including OTP key-migration note).
+
+### Fixed
+- `backend: :redis` without a client that responds to `eval` raises `ArgumentError`
+  (including when the optional `redis` gem is missing) instead of silently allowing.
+- Redis counters use one Lua `EVAL`: `INCR`, `EXPIRE` when `count == 1` or
+  `TTL == -1`, return count + TTL — blocked `:ttl` hits no longer extend the
+  window, and keys left without expiry get a TTL on the next hit.
+
+### Upgrade notes
+- Bump to `0.5.0`. No breaking changes to the existing fetch/invalidate API.
+- Redis stays optional: `backend: :redis` requires `redis:` responding to `eval`.
+  The `redis` gem is not a runtime dependency.
+- Default `rescue_errors:` is narrow; siblings that rescue `StandardError` today
+  should pass `rescue_errors: [StandardError]`.
+- OTP switch PRs must not reuse keys that still hold a boolean `true` (increment
+  would raise); use a new key or migrate/clear first.
+- Sibling gems can switch their local limiters to this API in follow-up PRs;
+  this release only adds the shared primitive.
+
 ## [0.4.0] - 2026-10-08
 
 ### Changed
