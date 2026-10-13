@@ -25,9 +25,11 @@ module RecordingStudioCache
     STRATEGIES = %i[fixed ttl].freeze
     DEFAULT_PREFIX = "rsc:rate"
     DEFAULT_SEPARATOR = ":"
-    REDIS_CLIENT_REQUIRED = "backend: :redis requires a redis: client that responds to incr"
+    REDIS_CLIENT_REQUIRED = "backend: :redis requires a redis: client that responds to eval"
 
-    # Connection / store failures that follow +fail_closed+ (not programming errors).
+    # Default +rescue_errors:+ list (connection / IO / timeout). +Redis::BaseError+
+    # is appended at runtime when the redis gem is loaded. Pass +[StandardError]+
+    # to match Embeddable / Downloadable / RootSwitchable rescue behavior.
     BACKEND_ERRORS = [
       Errno::ECONNREFUSED,
       Errno::ECONNRESET,
@@ -39,7 +41,8 @@ module RecordingStudioCache
       Timeout::Error
     ].freeze
 
-    attr_reader :key, :limit, :period, :backend, :strategy, :prefix, :separator, :fail_closed
+    attr_reader :key, :limit, :period, :backend, :strategy, :prefix, :separator, :fail_closed,
+                :rescue_errors
 
     class << self
       # @return [RateLimiters::Result]
@@ -60,8 +63,9 @@ module RecordingStudioCache
     # @param backend [Symbol] +:null+, +:rails_cache+, or +:redis+
     # @param strategy [Symbol] +:fixed+ (calendar bucket) or +:ttl+ (rolling key TTL)
     # @param store [ActiveSupport::Cache::Store, nil] rails_cache store override
-    # @param redis [#incr, #eval] redis client (required when +backend: :redis+)
-    # @param fail_closed [Boolean] when the backend errors, block if true (Embeddable)
+    # @param redis [#eval] redis client (required when +backend: :redis+)
+    # @param fail_closed [Boolean] when a rescued backend error occurs, block if true
+    # @param rescue_errors [Array<Class>] exception classes for +fail_closed+ handling
     # @param prefix [String] storage key prefix before +key+ / window segment
     # @param separator [String] join between prefix, key, and fixed-window bucket (default +":"+)
     # @param storage_key [String, nil] exact base key (skips prefix/key join); fixed still appends bucket
@@ -80,7 +84,7 @@ module RecordingStudioCache
       epoch = now_epoch
       payload = @backend_instance.increment(storage_key_for(epoch), expires_in: period)
       build_result(payload, epoch)
-    rescue *backend_errors
+    rescue *rescue_errors
       failure_result
     end
 
@@ -104,6 +108,7 @@ module RecordingStudioCache
       @backend = (options[:backend] || :rails_cache).to_sym
       @strategy = (options[:strategy] || :fixed).to_sym
       @fail_closed = options.fetch(:fail_closed, false) ? true : false
+      @rescue_errors = resolve_rescue_errors(options)
     end
 
     def assign_key_options!(options)
@@ -111,6 +116,20 @@ module RecordingStudioCache
       @prefix = (options[:prefix] || DEFAULT_PREFIX).to_s
       @separator = options.fetch(:separator, DEFAULT_SEPARATOR).to_s
       @storage_key = options[:storage_key]&.to_s
+    end
+
+    def resolve_rescue_errors(options)
+      if options.key?(:rescue_errors)
+        Array(options[:rescue_errors])
+      else
+        default_rescue_errors
+      end
+    end
+
+    def default_rescue_errors
+      errors = BACKEND_ERRORS.dup
+      errors << ::Redis::BaseError if defined?(::Redis::BaseError)
+      errors
     end
 
     def build_result(payload, epoch)
@@ -133,6 +152,7 @@ module RecordingStudioCache
       raise ArgumentError, "unknown backend: #{@backend}" unless BACKENDS.include?(@backend)
       raise ArgumentError, "unknown strategy: #{@strategy}" unless STRATEGIES.include?(@strategy)
       raise ArgumentError, "key: or storage_key: is required" if base_key_blank?
+      raise ArgumentError, "rescue_errors: must not be empty" if @rescue_errors.empty?
     end
 
     def base_key_blank?
@@ -155,7 +175,7 @@ module RecordingStudioCache
     end
 
     def ensure_redis_client!
-      return if @redis.respond_to?(:incr)
+      return if @redis.respond_to?(:eval)
 
       begin
         RateLimiters::Redis.require_redis!
@@ -211,12 +231,6 @@ module RecordingStudioCache
         allowed: !fail_closed,
         retry_after: fail_closed ? period : nil
       )
-    end
-
-    def backend_errors
-      errors = BACKEND_ERRORS.dup
-      errors << ::Redis::BaseError if defined?(::Redis::BaseError)
-      errors
     end
   end
 end

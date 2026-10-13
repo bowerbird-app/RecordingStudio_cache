@@ -4,19 +4,20 @@ module RecordingStudioCache
   module RateLimiters
     # Counter backed by a Redis-compatible client.
     #
-    # Uses one Lua +EVAL+ so +INCR+ and the first-hit +EXPIRE+ are atomic, and
-    # later hits do not refresh the TTL (matches rails_cache +:ttl+ windows).
-    # Pass a client via +redis:+ that responds to +eval+ (or +incr+ for the
-    # constructor check). The +redis+ gem is never required at boot.
+    # Uses one Lua +EVAL+ so +INCR+ and +EXPIRE+ (first hit, or key with no TTL)
+    # are atomic. Later hits with a live TTL do not refresh the window (matches
+    # rails_cache +:ttl+). Pass a client via +redis:+ that responds to +eval+.
+    # The +redis+ gem is never required at boot.
     class Redis
       # KEYS[1] = storage key, ARGV[1] = expires_in seconds
-      # Returns { count, ttl }. EXPIRE only when this INCR created the key.
+      # Returns { count, ttl }. EXPIRE when this INCR created the key or TTL is -1.
       INCR_EXPIRE_SCRIPT = <<~LUA
         local count = redis.call('INCR', KEYS[1])
-        if count == 1 then
-          redis.call('EXPIRE', KEYS[1], ARGV[1])
-        end
         local ttl = redis.call('TTL', KEYS[1])
+        if count == 1 or ttl == -1 then
+          redis.call('EXPIRE', KEYS[1], ARGV[1])
+          ttl = redis.call('TTL', KEYS[1])
+        end
         return { count, ttl }
       LUA
 

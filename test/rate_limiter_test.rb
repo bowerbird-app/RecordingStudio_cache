@@ -214,7 +214,7 @@ class RateLimiterTest < Minitest::Test
     end
   end
 
-  def test_redis_backend_requires_incr_client
+  def test_redis_backend_requires_eval_client
     error = assert_raises(ArgumentError) do
       RecordingStudioCache::RateLimiter.new(
         key: "x",
@@ -225,7 +225,10 @@ class RateLimiterTest < Minitest::Test
         fail_closed: true
       )
     end
-    assert_match(/redis: client that responds to incr/, error.message)
+    assert_match(/redis: client that responds to eval/, error.message)
+
+    incr_only = Object.new
+    def incr_only.incr(*) = 1
 
     error = assert_raises(ArgumentError) do
       RecordingStudioCache::RateLimiter.new(
@@ -233,11 +236,111 @@ class RateLimiterTest < Minitest::Test
         limit: 1,
         period: 60,
         backend: :redis,
-        redis: Object.new,
+        redis: incr_only,
         fail_closed: true
       )
     end
-    assert_match(/redis: client that responds to incr/, error.message)
+    assert_match(/redis: client that responds to eval/, error.message)
+  end
+
+  def test_rescue_errors_standard_error_matches_sibling_gems
+    broken = Object.new
+    def broken.increment(*)
+      raise "cache down"
+    end
+
+    assert_raises(RuntimeError) do
+      RecordingStudioCache::RateLimiter.throttle(
+        key: "narrow",
+        limit: 1,
+        period: 60,
+        backend: :rails_cache,
+        store: broken,
+        fail_closed: true
+      )
+    end
+
+    result = RecordingStudioCache::RateLimiter.throttle(
+      key: "wide",
+      limit: 1,
+      period: 60,
+      backend: :rails_cache,
+      store: broken,
+      fail_closed: true,
+      rescue_errors: [StandardError]
+    )
+    assert result.blocked?
+    assert_equal 60, result.retry_after
+  end
+
+  def test_redis_command_error_follows_fail_closed
+    skip "redis gem not available" unless redis_base_error_available?
+
+    broken = Object.new
+    def broken.eval(*)
+      raise Redis::CommandError, "ERR simulated command failure"
+    end
+
+    open_result = RecordingStudioCache::RateLimiter.throttle(
+      key: "cmd",
+      limit: 1,
+      period: 60,
+      backend: :redis,
+      redis: broken,
+      fail_closed: false
+    )
+    assert open_result.allowed?
+
+    closed_result = RecordingStudioCache::RateLimiter.throttle(
+      key: "cmd",
+      limit: 1,
+      period: 60,
+      backend: :redis,
+      redis: broken,
+      fail_closed: true
+    )
+    assert closed_result.blocked?
+    assert_equal 60, closed_result.retry_after
+  end
+
+  def test_redis_retry_after_uses_fake_redis_ttl
+    travel_to Time.zone.parse("2026-10-13 12:00:00 UTC")
+    redis = FakeRedis.new
+    opts = {
+      key: "retry-ttl",
+      limit: 1,
+      period: 45,
+      backend: :redis,
+      redis: redis,
+      strategy: :ttl
+    }
+
+    assert RecordingStudioCache::RateLimiter.allow?(**opts)
+    travel 10.seconds
+    blocked = RecordingStudioCache::RateLimiter.throttle(**opts)
+
+    assert blocked.blocked?
+    assert_equal redis.ttl("rsc:rate:retry-ttl"), blocked.retry_after
+    assert_equal 35, blocked.retry_after
+  end
+
+  def test_redis_expires_key_that_has_no_ttl
+    redis = FakeRedis.new
+    redis.seed_without_expiry("rsc:rate:orphan", 3)
+
+    result = RecordingStudioCache::RateLimiter.throttle(
+      key: "orphan",
+      limit: 10,
+      period: 60,
+      backend: :redis,
+      redis: redis,
+      strategy: :ttl
+    )
+
+    assert result.allowed?
+    assert_equal 4, result.count
+    assert_equal 1, redis.expire_calls
+    assert_operator redis.ttl("rsc:rate:orphan"), :>, 0
   end
 
   def test_redis_backend_with_fake_client
@@ -374,7 +477,14 @@ class RateLimiterTest < Minitest::Test
     assert RecordingStudioCache::RateLimiter.allow?(**opts)
   end
 
-  # Minimal Redis duck type: +incr+ for construction, +eval+ for atomic INCR/EXPIRE.
+  def redis_base_error_available?
+    require "redis"
+    defined?(Redis::CommandError)
+  rescue LoadError
+    false
+  end
+
+  # Minimal Redis duck type: +eval+ for atomic INCR/EXPIRE (+ TTL == -1).
   class FakeRedis
     attr_reader :expire_calls
 
@@ -384,8 +494,13 @@ class RateLimiterTest < Minitest::Test
       @expire_calls = 0
     end
 
-    def incr(_key)
-      raise "use eval"
+    def seed_without_expiry(key, count)
+      @data[key] = count
+      @expires_at.delete(key)
+    end
+
+    def ttl(key)
+      remaining_ttl(key)
     end
 
     def eval(_script, keys:, argv:)
@@ -395,12 +510,14 @@ class RateLimiterTest < Minitest::Test
 
       @data[key] = @data.fetch(key, 0) + 1
       count = @data[key]
-      if count == 1
+      ttl = remaining_ttl(key)
+      if count == 1 || ttl == -1
         @expires_at[key] = Time.now.to_f + expires_in
         @expire_calls += 1
+        ttl = remaining_ttl(key)
       end
 
-      [count, remaining_ttl(key)]
+      [count, ttl]
     end
 
     private

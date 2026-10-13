@@ -152,7 +152,7 @@ other than `Rails.cache`.
 
 Shared fixed/TTL window limiter for sibling gems (`RecordingStudioCache::RateLimiter`).
 Backends: `:null`, `:rails_cache`, `:redis`. Redis is optional — pass a client that
-responds to `incr` / `expire`; this gem does not hard-require the `redis` gem.
+responds to `eval`; this gem does not hard-require the `redis` gem.
 
 ```ruby
 result = RecordingStudioCache::RateLimiter.new(
@@ -162,8 +162,9 @@ result = RecordingStudioCache::RateLimiter.new(
   backend: :rails_cache,   # :null | :rails_cache | :redis
   strategy: :fixed,        # :fixed calendar bucket | :ttl rolling key
   store: Rails.cache,      # rails_cache only
-  redis: redis_client,     # required for :redis (must respond to incr + eval)
+  redis: redis_client,     # required for :redis (must respond to eval)
   fail_closed: false,
+  rescue_errors: nil,      # default: connection/IO/timeout (+ Redis::BaseError)
   prefix: "rsc:rate",
   separator: ":",          # join for prefix/key(/bucket); use "/" for Oauth-style keys
   storage_key: nil         # optional exact base key (skips prefix/key join)
@@ -177,13 +178,16 @@ result.count         # hits after this call
 
 Class helpers: `RateLimiter.throttle(...)` → `Result`, `RateLimiter.allow?(...)` → boolean.
 
-`limit <= 0` disables throttling (always allowed). Backend connection/IO errors follow
-Embeddable: allow when `fail_closed: false`, block when `fail_closed: true`.
-Programming errors (`ArgumentError`, etc.) are not swallowed.
+`limit <= 0` disables throttling (always allowed). Rescued backend errors follow
+`fail_closed:` (allow when false, block when true). Default `rescue_errors:` is the
+narrow connection/IO/timeout list (plus `Redis::BaseError` when the gem is loaded).
+Pass `rescue_errors: [StandardError]` to match siblings that rescue `StandardError`
+today. `ArgumentError` from this gem’s own validation still raises before throttle.
 
-`backend: :redis` raises `ArgumentError` unless `redis:` responds to `incr` (same message
-if the optional `redis` gem cannot be loaded). Redis increments use one Lua `EVAL`
-(INCR + EXPIRE only when `count == 1`) so `:ttl` windows are not refreshed by blocked hits.
+`backend: :redis` raises `ArgumentError` unless `redis:` responds to `eval` (same
+message if the optional `redis` gem cannot be loaded). Redis increments use one Lua
+`EVAL` (INCR; EXPIRE when `count == 1` or `TTL == -1`) so `:ttl` windows are not
+refreshed by blocked hits, and keys left without expiry get a TTL.
 
 Key shape: `prefix + separator + key` (+ `separator + bucket` for `:fixed`). For exact
 legacy keys, pass `separator: "/"` or `storage_key: "recording_studio_oauth/register/1.2.3.4"`.
@@ -193,13 +197,18 @@ legacy keys, pass `separator: "/"` or `storage_key: "recording_studio_oauth/regi
 How each existing limiter would call this API (this gem only adds the shared
 limiter; siblings switch in follow-up PRs):
 
-| Gem / limiter | `key` | `limit` / `period` | `backend` / `strategy` |
-| --- | --- | --- | --- |
-| **Embeddable** `RateLimiters::*` | digest(`token:ip`) | config `rate_limit` / `rate_limit_window` | `:null`, `:rails_cache`, or `:redis` + client; **`:fixed`**; `fail_closed:` from config; `prefix: "recording_studio_embeddable:rate"` |
-| **Downloadable** `RateLimiter` | per bucket `action:bucket:id` (ip / actor / recording) | each bucket’s `limit` / `period` | `:rails_cache` + config `cache_store`; **`:fixed`**; `prefix: "rs_downloadable:rate"` |
-| **RootSwitchable** `SwitchRateLimiter` | `actor_identity:device_key` | config `switch_rate_limit` | `:rails_cache`; **`:ttl`**; `prefix: "recording_studio_root_switchable:switch_rate"` |
-| **Users** `OtpRateLimiter` | `scope:key` (e.g. `resend:…`) | `limit: 1`, cooldown as `period` | `:rails_cache`; **`:ttl`**; `prefix: "recording_studio_user:otp"` — block ⇒ raise their `RateLimited` |
-| **Oauth** `RegisterRateLimit` | client IP (`"unknown"` if blank) | `self_registered_apps_per_minute` / `1.minute` | `:rails_cache` (+ injectable store); **`:ttl`**; `prefix: "recording_studio_oauth/register"`, `separator: "/"` (or `storage_key: "recording_studio_oauth/register/#{ip}"`) |
+| Gem / limiter | `key` | `limit` / `period` | `backend` / `strategy` | `rescue_errors:` |
+| --- | --- | --- | --- | --- |
+| **Embeddable** `RateLimiters::*` | digest(`token:ip`) | config `rate_limit` / `rate_limit_window` | `:null`, `:rails_cache`, or `:redis` + client; **`:fixed`**; `fail_closed:` from config; `prefix: "recording_studio_embeddable:rate"` | `[StandardError]` |
+| **Downloadable** `RateLimiter` | per bucket `action:bucket:id` (ip / actor / recording) | each bucket’s `limit` / `period` | `:rails_cache` + config `cache_store`; **`:fixed`**; `prefix: "rs_downloadable:rate"` | `[StandardError]` |
+| **RootSwitchable** `SwitchRateLimiter` | `actor_identity:device_key` | config `switch_rate_limit` | `:rails_cache`; **`:ttl`**; `prefix: "recording_studio_root_switchable:switch_rate"` | `[StandardError]` |
+| **Users** `OtpRateLimiter` | `scope:key` (e.g. `resend:…`) | `limit: 1`, cooldown as `period` | `:rails_cache`; **`:ttl`**; block ⇒ raise their `RateLimited` | default (narrow) |
+| **Oauth** `RegisterRateLimit` | client IP (`"unknown"` if blank) | `self_registered_apps_per_minute` / `1.minute` | `:rails_cache` (+ injectable store); **`:ttl`**; `prefix: "recording_studio_oauth/register"`, `separator: "/"` (or `storage_key:`) | default (narrow) |
+
+**OTP switch note:** the current Users limiter stores `true` under
+`recording_studio_user:otp:#{scope}:#{key}`. A counter `increment` on that value
+raises `NoMethodError`. The OTP migration PR must use a **new key** (or clear /
+migrate the old boolean) before calling this limiter.
 
 ## Dummy app
 

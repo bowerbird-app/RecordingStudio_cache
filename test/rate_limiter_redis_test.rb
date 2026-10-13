@@ -39,22 +39,65 @@ class RateLimiterRedisTest < Minitest::Test
   end
 
   def test_redis_retry_after_uses_key_ttl
-    result = nil
-    3.times do
-      result = RecordingStudioCache::RateLimiter.throttle(
-        key: "ttl",
-        limit: 1,
-        period: 30,
-        backend: :redis,
-        redis: @redis,
-        prefix: @prefix,
-        strategy: :ttl
-      )
+    key = "ttl"
+    storage_key = "#{@prefix}:#{key}"
+    opts = {
+      key: key,
+      limit: 1,
+      period: 30,
+      backend: :redis,
+      redis: @redis,
+      prefix: @prefix,
+      strategy: :ttl
+    }
+
+    assert RecordingStudioCache::RateLimiter.allow?(**opts)
+    sleep 1
+    blocked = RecordingStudioCache::RateLimiter.throttle(**opts)
+
+    assert blocked.blocked?
+    redis_ttl = @redis.ttl(storage_key)
+    assert_operator redis_ttl, :>, 0
+    assert_operator redis_ttl, :<, 30
+    assert_in_delta redis_ttl, blocked.retry_after, 1
+  end
+
+  def test_redis_command_error_is_rescued_as_base_error
+    broken = Object.new
+    def broken.eval(*)
+      raise Redis::CommandError, "ERR simulated command failure"
     end
 
+    result = RecordingStudioCache::RateLimiter.throttle(
+      key: "cmd",
+      limit: 1,
+      period: 60,
+      backend: :redis,
+      redis: broken,
+      fail_closed: true
+    )
     assert result.blocked?
-    assert_operator result.retry_after, :>, 0
-    assert_operator result.retry_after, :<=, 30
+  end
+
+  def test_redis_expires_when_existing_key_has_no_ttl
+    storage_key = "#{@prefix}:orphan"
+    @redis.set(storage_key, 5)
+    assert_equal(-1, @redis.ttl(storage_key))
+
+    result = RecordingStudioCache::RateLimiter.throttle(
+      key: "orphan",
+      limit: 10,
+      period: 20,
+      backend: :redis,
+      redis: @redis,
+      prefix: @prefix,
+      strategy: :ttl
+    )
+
+    assert result.allowed?
+    assert_equal 6, result.count
+    assert_operator @redis.ttl(storage_key), :>, 0
+    assert_operator @redis.ttl(storage_key), :<=, 20
   end
 
   def test_redis_ttl_blocked_hits_do_not_extend_window_matching_rails_cache
