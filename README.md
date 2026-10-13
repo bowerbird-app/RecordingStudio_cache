@@ -202,7 +202,7 @@ limiter; siblings switch in follow-up PRs):
 | **Embeddable** `RateLimiters::*` | digest(`token:ip`) | config `rate_limit` / `rate_limit_window` | `:null`, `:rails_cache`, or `:redis` + client; **`:fixed`**; `fail_closed:` from config; `prefix: "recording_studio_embeddable:rate"` | `[StandardError]` |
 | **Downloadable** `RateLimiter` | per bucket `action:bucket:id` (ip / actor / recording) | each bucket’s `limit` / `period` | `:rails_cache` + config `cache_store`; **`:fixed`**; `prefix: "rs_downloadable:rate"` | `[StandardError]` |
 | **RootSwitchable** `SwitchRateLimiter` | `actor_identity:device_key` | config `switch_rate_limit` | `:rails_cache`; **`:ttl`**; `prefix: "recording_studio_root_switchable:switch_rate"` | `[StandardError]` |
-| **Users** `OtpRateLimiter` | `scope:key` (e.g. `resend:…`) | `limit: 1`, cooldown as `period` | `:rails_cache`; **`:ttl`**; block ⇒ raise their `RateLimited` | default (narrow) |
+| **Users** `OtpRateLimiter` | `scope:key` (e.g. `resend:…`) | `limit: 1`, cooldown as `period` | `:rails_cache`; **`:ttl`**; `fail_closed: true`; block ⇒ raise their `RateLimited` | default (narrow) |
 | **Oauth** `RegisterRateLimit` | client IP (`"unknown"` if blank) | `self_registered_apps_per_minute` / `1.minute` | `:rails_cache` (+ injectable store); **`:ttl`**; `prefix: "recording_studio_oauth/register"`, `separator: "/"` (or `storage_key:`) | default (narrow) |
 
 **OTP switch note:** the current Users limiter stores `true` under
