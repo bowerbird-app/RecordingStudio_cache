@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-13
+
+### Added
+- `RecordingStudioCache::RateLimiter` — shared rate limiter with `:null`,
+  `:rails_cache`, and `:redis` backends (ported from RecordingStudioEmbeddable
+  semantics). Returns `allowed?` / `blocked?`, `retry_after`, and `count`.
+- Strategies: `:fixed` (calendar window bucket) and `:ttl` (rolling key expiry).
+- README mapping for Embeddable, Downloadable, RootSwitchable, Users OTP, and
+  Oauth register limiters.
+
+### Upgrade notes
+- Bump to `0.5.0`. No breaking changes to the existing fetch/invalidate API.
+- Redis stays optional: only pass `backend: :redis` with a client that responds
+  to `incr` (and ideally `expire` / `ttl`). The `redis` gem is not a runtime
+  dependency of this gem.
+- Sibling gems can switch their local limiters to this API in follow-up PRs;
+  this release only adds the shared primitive.
+
 ## [0.4.0] - 2026-10-08
 
 ### Changed

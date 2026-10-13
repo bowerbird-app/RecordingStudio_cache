@@ -148,6 +148,49 @@ Optional later: `config.cache_store = :redis_cache_store, { url: ENV["REDIS_URL"
 Point `RecordingStudioCache.configuration.cache_store` only if you need a store
 other than `Rails.cache`.
 
+## Rate limiter
+
+Shared fixed/TTL window limiter for sibling gems (`RecordingStudioCache::RateLimiter`).
+Backends: `:null`, `:rails_cache`, `:redis`. Redis is optional — pass a client that
+responds to `incr` / `expire`; this gem does not hard-require the `redis` gem.
+
+```ruby
+result = RecordingStudioCache::RateLimiter.new(
+  key: "embed:#{digest}",
+  limit: 120,
+  period: 60,              # or window: (Embeddable name)
+  backend: :rails_cache,   # :null | :rails_cache | :redis
+  strategy: :fixed,        # :fixed calendar bucket | :ttl rolling key
+  store: Rails.cache,      # rails_cache only
+  redis: redis_client,     # redis only
+  fail_closed: false,
+  prefix: "rsc:rate"
+).throttle
+
+result.allowed?      # under the limit?
+result.blocked?      # opposite of allowed?
+result.retry_after   # Integer seconds when blocked, else nil
+result.count         # hits after this call
+```
+
+Class helpers: `RateLimiter.throttle(...)` → `Result`, `RateLimiter.allow?(...)` → boolean.
+
+`limit <= 0` disables throttling (always allowed). Backend errors follow Embeddable:
+allow when `fail_closed: false`, block when `fail_closed: true`.
+
+### Sibling gem mapping
+
+How each existing limiter would call this API (this gem only adds the shared
+limiter; siblings switch in follow-up PRs):
+
+| Gem / limiter | `key` | `limit` / `period` | `backend` / `strategy` |
+| --- | --- | --- | --- |
+| **Embeddable** `RateLimiters::*` | digest(`token:ip`) | config `rate_limit` / `rate_limit_window` | `:null`, `:rails_cache`, or `:redis` + client; **`:fixed`**; `fail_closed:` from config; `prefix: "recording_studio_embeddable:rate"` |
+| **Downloadable** `RateLimiter` | per bucket `action:bucket:id` (ip / actor / recording) | each bucket’s `limit` / `period` | `:rails_cache` + config `cache_store`; **`:fixed`**; `prefix: "rs_downloadable:rate"` |
+| **RootSwitchable** `SwitchRateLimiter` | `actor_identity:device_key` | config `switch_rate_limit` | `:rails_cache`; **`:ttl`**; `prefix: "recording_studio_root_switchable:switch_rate"` |
+| **Users** `OtpRateLimiter` | `scope:key` (e.g. `resend:…`) | `limit: 1`, cooldown as `period` | `:rails_cache`; **`:ttl`**; `prefix: "recording_studio_user:otp"` — block ⇒ raise their `RateLimited` |
+| **Oauth** `RegisterRateLimit` | client IP (`"unknown"` if blank) | `self_registered_apps_per_minute` / `1.minute` | `:rails_cache` (+ injectable store); **`:ttl`**; `prefix: "recording_studio_oauth/register"` |
+
 ## Dummy app
 
 `test/dummy` is a host validation surface (Devise, Recording Studio, FlatPack).
@@ -171,4 +214,4 @@ bundle exec rake test:all
 ```
 
 CI runs the suite against PostgreSQL and a Redis service container (concurrent
-root-generation tests).
+root-generation and redis rate-limiter tests).
