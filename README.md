@@ -164,7 +164,6 @@ result = RecordingStudioCache::RateLimiter.new(
   store: Rails.cache,      # rails_cache only
   redis: redis_client,     # required for :redis (must respond to eval)
   fail_closed: false,
-  rescue_errors: nil,      # default: connection/IO/timeout (+ Redis::BaseError)
   prefix: "rsc:rate",
   separator: ":",          # join for prefix/key(/bucket); use "/" for Oauth-style keys
   storage_key: nil         # optional exact base key (skips prefix/key join)
@@ -205,7 +204,8 @@ limiter; siblings switch in follow-up PRs):
 | **Users** `OtpRateLimiter` | `scope:key` (e.g. `resend:…`) | `limit: 1`, cooldown as `period` | `:rails_cache`; **`:ttl`**; `fail_closed: true`; block ⇒ raise their `RateLimited` | default (narrow) |
 | **Oauth** `RegisterRateLimit` | client IP (`"unknown"` if blank) | `self_registered_apps_per_minute` / `1.minute` | `:rails_cache` (+ injectable store); **`:ttl`**; `prefix: "recording_studio_oauth/register"`, `separator: "/"` (or `storage_key:`) | default (narrow) |
 
-**OTP switch note:** the current Users limiter stores `true` under
+**OTP switch note:** prefer `fail_closed: true` so a cache outage does not skip the
+cooldown. The current Users limiter stores `true` under
 `recording_studio_user:otp:#{scope}:#{key}`. A counter `increment` on that value
 raises `NoMethodError`. The OTP migration PR must use a **new key** (or clear /
 migrate the old boolean) before calling this limiter.
