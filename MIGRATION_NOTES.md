@@ -4,9 +4,9 @@
 
 - Ruby 3.3 or newer
 - Rails 8.1 or newer
-- Recording Studio 4.x (`~> 4.2` in the gemspec; root and dummy GitHub tag `v4.6.0`)
+- Recording Studio 4.x (`~> 4.2` in the gemspec; root GitHub tag `v4.6.0`, dummy GitHub tag `v4.7.0`)
 - Accessible dummy tag `v0.18.0` and Root Switchable dummy tag `v0.9.0`
-- Trashable dummy tag `v0.10.0` (`require: false`; Accessible 0.17 query-only)
+- Trashable dummy tag `v0.11.0` (`require: false`; Accessible 0.18 query-only). Trashable 0.11 requires Recording Studio `~> 4.7`, so the dummy pin is `v4.7.0` while the root bundle stays on `v4.6.0`.
 - Metrics dummy tag `v0.2.0` (required by Root Switchable / Trashable `~> 0.2`; not on RubyGems)
 - FlatPack dummy tag `v0.1.196`
 - Public RubyGems and GitHub access for dependency installation
