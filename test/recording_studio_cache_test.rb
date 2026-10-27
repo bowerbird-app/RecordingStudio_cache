@@ -4,17 +4,17 @@ require "test_helper"
 
 class RecordingStudioCacheTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.5.0", ::RecordingStudioCache::VERSION
+    assert_equal "0.5.1", ::RecordingStudioCache::VERSION
   end
 
   def test_engine_exists
     assert_kind_of Class, ::RecordingStudioCache::Engine
   end
 
-  def test_gemspec_pins_recording_studio_4_2
+  def test_gemspec_allows_recording_studio_through_6_x
     gemspec = File.read(File.expand_path("../recording_studio_cache.gemspec", __dir__))
 
-    assert_includes gemspec, 'spec.add_dependency "recording_studio", "~> 4.2"'
+    assert_includes gemspec, 'spec.add_dependency "recording_studio", ">= 4.2", "< 7"'
   end
 
   def test_gemspec_excludes_cursor_config

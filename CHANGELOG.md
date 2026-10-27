@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-27
+
+### Changed
+- Widened the `recording_studio` runtime constraint from `~> 4.2` to `>= 4.2`, `< 7`
+  so hosts and sibling gems on Recording Studio 6.x (including 6.1.0) can resolve this gem.
+
 ## [0.5.0] - 2026-10-13
 
 ### Added
@@ -189,7 +195,9 @@ New addons copied from this template are born on Recording Studio 4.x.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.5.1
+[0.5.0]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.5.0
 [0.4.0]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.4.0
 [0.3.0]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.3.0
 [0.2.3]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.2.3
