@@ -1,11 +1,8 @@
-<% dummy_page_nav(title: "Install", back_url: root_path) %>
+<% content_for :title, "Install" %>
+<% content_for :subtitle, "Host-app setup for the mounted GemTemplate engine and its sample migrations." %>
+<% dummy_page_nav(back_url: root_path) %>
 
 <div class="flex w-full flex-col gap-6">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "Install",
-    subtitle: "Host-app setup for the mounted GemTemplate engine and its sample migrations.",
-    variant: :h1
-  ) %>
 
   <%= render FlatPack::SectionTitle::Component.new(
     title: "Step 1",

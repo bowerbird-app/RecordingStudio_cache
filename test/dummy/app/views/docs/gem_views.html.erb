@@ -1,11 +1,8 @@
-<% dummy_page_nav(title: "Gem Views", back_url: root_path) %>
+<% content_for :title, "Gem Views" %>
+<% content_for :subtitle, "These are the view templates currently shipped by the gem." %>
+<% dummy_page_nav(back_url: root_path) %>
 
 <div class="flex w-full flex-col gap-6">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "Gem Views",
-    subtitle: "These are the view templates currently shipped by the gem.",
-    variant: :h1
-  ) %>
 
   <% view_rows = Array(@engine_views).map { |view_path| { path: view_path, source: "Gem engine" } } %>
 

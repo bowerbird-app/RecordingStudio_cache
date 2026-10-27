@@ -1,11 +1,8 @@
-<% dummy_page_nav(title: "Config", back_url: root_path) %>
+<% content_for :title, "Config" %>
+<% content_for :subtitle, "Replace this placeholder with the configuration settings your generated gem exposes." %>
+<% dummy_page_nav(back_url: root_path) %>
 
 <div class="flex w-full flex-col gap-6">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "Config",
-    subtitle: "Replace this placeholder with the configuration settings your generated gem exposes.",
-    variant: :h1
-  ) %>
 
   <%= render FlatPack::CodeBlock::Component.new(
     language: :ruby,

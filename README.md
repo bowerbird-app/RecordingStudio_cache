@@ -26,7 +26,7 @@ The host chooses the cache backend.
 
 ```ruby
 # Gemfile
-gem "recording_studio", "~> 4.2"
+gem "recording_studio", ">= 6.1.0"
 gem "recording_studio_cache", github: "bowerbird-app/RecordingStudio_cache"
 ```
 
@@ -40,6 +40,7 @@ bin/rails generate recording_studio_cache:install
 # config/initializers/recording_studio_cache.rb
 RecordingStudioCache.configure do |config|
   config.namespace = "rsc"
+  config.layout = nil # nil defers to RecordingStudio.configuration.layout
   config.register_policy :api_payload, expires_in: 1.minute, race_ttl: 2.seconds
   # Entry names never imply a policy — map them, or pass policy: per call.
   config.register_entry :api_payload, policy: :api_payload
