@@ -4,11 +4,14 @@
 
 - Ruby 3.3 or newer
 - Rails 8.1 or newer
-- Recording Studio 4.x (`~> 4.2` in the gemspec; root GitHub tag `v4.6.0`, dummy GitHub tag `v4.7.0`)
-- Accessible dummy tag `v0.18.0` and Root Switchable dummy tag `v0.9.0`
-- Trashable dummy tag `v0.11.0` (`require: false`; Accessible 0.18 query-only). Trashable 0.11 requires Recording Studio `~> 4.7`, so the dummy pin is `v4.7.0` while the root bundle stays on `v4.6.0`.
-- Metrics dummy tag `v0.2.0` (required by Root Switchable / Trashable `~> 0.2`; not on RubyGems)
-- FlatPack dummy tag `v0.1.196`
+- Recording Studio `>= 6.1.0` (root and dummy GitHub tag `v6.1.0`)
+- Accessible dummy tag `v0.22.0`
+- Trashable dummy tag `v0.12.0` (`require: false`; Accessible loads `recording_studio_trashable/query` only)
+- Root Switchable dummy tag `v0.11.0`
+- Metrics dummy tag `v0.6.1` (required by Root Switchable and Trashable; not on RubyGems)
+- FlatPack `0.1.319` at ref `1fcbafe94f8eb118f0a22182f63f5110fcc97a56` (`>= 0.1.315`). Not a runtime dependency of this gem.
+- `view_component` `>= 4.14, < 5` (via FlatPack)
+- Metrics `v0.6.1` still declares `recording_studio` `~> 4.2`. `test/support/widen_recording_studio_requirement.rb` relaxes that before Bundler setup so `6.1.0` resolves. Load it from the dummy Gemfile, `test/dummy/config/boot.rb`, and the Rakefile.
 - Public RubyGems and GitHub access for dependency installation
 - For Redis-backed generation tests: `REDIS_URL` and the `redis` gem (dev/test)
 

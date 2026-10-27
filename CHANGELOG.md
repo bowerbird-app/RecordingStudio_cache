@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-27
+
+### Changed
+- Recording Studio dependency is `>= 6.1.0` (root and dummy pin `v6.1.0`).
+- FlatPack pin is ref `1fcbafe94f8eb118f0a22182f63f5110fcc97a56` (`0.1.319`). `flat_pack` is not a runtime dependency.
+- Dummy sibling tags: Accessible `v0.22.0`, Trashable `v0.12.0`, Root Switchable `v0.11.0`, Metrics `v0.6.1`.
+- `RecordingStudioCache::Configuration#layout` is `nil` by default. `layout=` validates with `RecordingStudio::Layout.accept`. `merge!` and `to_h` include it.
+- The dummy host uses `recording_studio_layout` (Devise stays on `"application"`). Page titles come from `content_for :title` and `:subtitle`. Back/close uses `flat_pack_page_nav`. Right-side actions use `register_page_nav`.
+
+### Added
+- `test/support/widen_recording_studio_requirement.rb`, loaded before Bundler setup, so Metrics `v0.6.1` (still `recording_studio ~> 4.2`) resolves with 6.1.0.
+
+### Upgrade notes
+- Bump to `0.6.0`. Cache keys, policy names, TTLs, instrumentation payloads, and `RateLimiter` are unchanged.
+- Hosts need Recording Studio `>= 6.1.0` and a FlatPack git source at `>= 0.1.315`. This gem still does not talk to Redis, Solid Cache, or Cloudflare.
+- Set `config.layout` only when this surface should override `RecordingStudio.configuration.layout`. `nil` keeps the core default.
+
 ## [0.5.0] - 2026-10-13
 
 ### Added

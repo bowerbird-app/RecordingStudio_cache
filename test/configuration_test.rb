@@ -105,6 +105,43 @@ class ConfigurationTest < Minitest::Test
     assert_equal 1, result.fetch(:hooks_registered).fetch(:after_service)
   end
 
+  def test_layout_defaults_to_nil_and_accepts_a_layout_name
+    assert_nil @configuration.layout
+    assert_nil @configuration.to_h.fetch(:layout)
+
+    @configuration.layout = "application"
+    assert_equal "application", @configuration.layout
+
+    @configuration.layout = false
+    assert_equal false, @configuration.layout
+
+    @configuration.layout = nil
+    assert_nil @configuration.layout
+  end
+
+  def test_layout_assignment_uses_recording_studio_layout_accept
+    error = assert_raises(ArgumentError) { @configuration.layout = "" }
+    assert_match(/layout must be a layout name/, error.message)
+
+    error = assert_raises(ArgumentError) { @configuration.layout = :application }
+    assert_match(/layout must be nil, false, a layout name, or a callable/, error.message)
+
+    error = assert_raises(ArgumentError) { @configuration.layout = ->(controller) { controller } }
+    assert_match(/controller:/, error.message)
+  end
+
+  def test_layout_accepts_a_keyword_callable_and_merges
+    callable = ->(controller:) { controller.class.name }
+    @configuration.layout = callable
+
+    assert_equal callable, @configuration.layout
+
+    @configuration.merge!("layout" => "application")
+
+    assert_equal "application", @configuration.layout
+    assert_equal "application", @configuration.to_h.fetch(:layout)
+  end
+
   def test_configure_without_block_is_safe
     RecordingStudioCache.configure
 

@@ -1,16 +1,8 @@
-<% dummy_page_nav(title: "Cache wiring", back_url: root_path) %>
+<% content_for :title, "RecordingStudioCache" %>
+<% content_for :subtitle, "Living host wiring docs for this gem — configure Rails.cache app payloads, not Cloudflare/R2/Artifacts." %>
+<% dummy_page_nav(back_url: root_path) %>
 
 <div class="flex w-full flex-col gap-8">
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "RecordingStudioCache",
-    subtitle: "Living host wiring docs for this gem — configure Rails.cache app payloads, not Cloudflare/R2/Artifacts.",
-    variant: :h1
-  ) %>
-
-  <% if notice.present? %>
-    <%= render FlatPack::Alert::Component.new(style: :success, title: notice) %>
-  <% end %>
-
   <%= render FlatPack::Alert::Component.new(
     style: :info,
     title: "Boundary",
@@ -26,7 +18,7 @@
     language: :ruby,
     code: <<~'CODE'
       # Gemfile
-      gem "recording_studio", "~> 4.2"
+      gem "recording_studio", ">= 6.1.0"
       gem "recording_studio_cache", github: "bowerbird-app/RecordingStudio_cache"
 
       # then:
@@ -186,7 +178,7 @@
   ) %>
 
   <% if @root %>
-    <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+    <%= render FlatPack::Card::Component.new(background: :default) do |card| %>
       <% card.header do %>
         <%= render FlatPack::PageTitle::Component.new(
           title: "fetch(recording, :api_payload)",
