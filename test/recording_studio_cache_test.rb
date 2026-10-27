@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioCacheTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.5.1", ::RecordingStudioCache::VERSION
+    assert_equal "0.6.1", ::RecordingStudioCache::VERSION
   end
 
   def test_engine_exists
@@ -15,6 +15,8 @@ class RecordingStudioCacheTest < Minitest::Test
     gemspec = File.read(File.expand_path("../recording_studio_cache.gemspec", __dir__))
 
     assert_includes gemspec, 'spec.add_dependency "recording_studio", ">= 4.2", "< 7"'
+    refute_includes gemspec, '"recording_studio", "~> 4.2"'
+    refute_includes gemspec, "flat_pack"
   end
 
   def test_gemspec_excludes_cursor_config
@@ -41,33 +43,28 @@ class RecordingStudioCacheTest < Minitest::Test
     assert_includes install_script, "fetch-skills.sh"
   end
 
-  def test_dummy_gemfile_pins_verified_4x_github_tags
+  def test_gemfiles_pin_recording_studio_6_1_and_flatpack_0_1_319
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
+    root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
+    flatpack_ref = 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
 
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v4.7.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.18.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.11.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.9.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.2.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/flatpack", tag: "v0.1.196"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.22.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.12.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.11.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.6.1"'
+    assert_includes gemfile, flatpack_ref
+    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
+    assert_includes root_gemfile, flatpack_ref
     refute_includes gemfile, "recording_studio/v3.0.0"
+    refute_includes gemfile, 'tag: "v4.7.0"'
     refute_includes gemfile, 'tag: "v4.6.0"'
-    refute_includes gemfile, 'tag: "v4.5.0"'
-    refute_includes gemfile, 'tag: "v4.2.2"'
-    refute_includes gemfile, 'tag: "v4.2.1"'
-    refute_includes gemfile, 'tag: "v4.2.0"'
-    refute_includes gemfile, 'tag: "v0.17.0"'
-    refute_includes gemfile, 'tag: "v0.15.0"'
-    refute_includes gemfile, 'tag: "v0.10.1"'
-    refute_includes gemfile, 'tag: "v0.10.0"'
-    refute_includes gemfile, 'tag: "v0.9.1"'
-    refute_includes gemfile, 'tag: "v0.8.0"'
-    refute_includes gemfile, 'tag: "v0.6.0"'
-    refute_includes gemfile, 'tag: "v0.5.1"'
-    refute_includes gemfile, 'tag: "v0.5.0"'
-    refute_includes gemfile, 'tag: "v0.1.177"'
-    refute_includes gemfile, 'tag: "v0.1.133"'
-    refute_includes gemfile, 'tag: "0.3.1"'
+    refute_includes gemfile, 'RecordingStudio_accessible", tag: "v0.18.0"'
+    refute_includes gemfile, 'RecordingStudio_trashable", tag: "v0.11.0"'
+    refute_includes gemfile, 'RecordingStudio_root_switchable", tag: "v0.10.0"'
+    refute_includes gemfile, 'RecordingStudio_root_switchable", tag: "v0.9.0"'
+    refute_includes gemfile, 'RecordingStudio_metrics", tag: "v0.2.0"'
+    refute_includes gemfile, 'tag: "v0.1.196"'
   end
 
   def test_dummy_schema_includes_accessible_depends_on_recording_id
@@ -141,10 +138,18 @@ class RecordingStudioCacheTest < Minitest::Test
     application_controller_path = File.expand_path("dummy/app/controllers/application_controller.rb", __dir__)
     controller_source = File.read(application_controller_path)
 
-    assert_includes controller_source, "include RecordingStudio::UsesDefaultLayout"
-    assert_includes controller_source, '"recording_studio/default_layout"'
+    assert_includes controller_source, "recording_studio_layout"
+    assert_includes controller_source, "RecordingStudioCache.configuration.layout"
     assert_includes controller_source, "devise_controller? ? \"application\""
+    refute_includes controller_source, "UsesDefaultLayout"
+    refute_includes controller_source, "recording_studio/default_layout"
     refute_includes controller_source, "flat_pack_sidebar"
+
+    helper_source = File.read(File.expand_path("dummy/app/helpers/application_helper.rb", __dir__))
+    assert_includes helper_source, "flat_pack_page_nav("
+    assert_includes helper_source, "register_page_nav("
+    refute_includes helper_source, "recording_studio_page_nav"
+
     refute File.exist?(File.expand_path("dummy/app/views/layouts/flat_pack_sidebar.html.erb", __dir__))
     refute File.exist?(File.expand_path("dummy/app/views/layouts/flat_pack/_sidebar.html.erb", __dir__))
   end
@@ -229,7 +234,7 @@ class RecordingStudioCacheTest < Minitest::Test
     view_path = File.expand_path("dummy/app/views/home/index.html.erb", __dir__)
     view_source = File.read(view_path)
 
-    assert_includes view_source, 'title: "RecordingStudioCache"'
+    assert_includes view_source, 'content_for :title, "RecordingStudioCache"'
     assert_includes view_source, "RecordingStudioCache.configure"
     assert_includes view_source, "namespace"
     assert_includes view_source, "register_policy"
@@ -262,7 +267,8 @@ class RecordingStudioCacheTest < Minitest::Test
       view_source = File.read(view_path)
 
       assert_includes view_source, "dummy_page_nav"
-      assert_includes view_source, "FlatPack::PageTitle::Component"
+      assert_includes view_source, "content_for :title"
+      refute_includes view_source, "FlatPack::PageTitle::Component"
       refute_includes view_source, "FlatPack::Card::Component"
       refute_includes view_source, "FlatPack::Breadcrumb::Component"
     end
@@ -288,7 +294,7 @@ class RecordingStudioCacheTest < Minitest::Test
   def test_dummy_recordings_tree_view_omits_structure_section_copy
     recordings_tree_view = File.read(File.expand_path("dummy/app/views/docs/recordings_tree.html.erb", __dir__))
 
-    assert_includes recordings_tree_view, 'title: "Recordings tree"'
+    assert_includes recordings_tree_view, 'content_for :title, "Recordings tree"'
     assert_includes recordings_tree_view, "FlatPack::Tree::Component"
     recording_tree_partial = File.read(File.expand_path("dummy/app/views/docs/_recording_tree_node.html.erb", __dir__))
     assert_includes recording_tree_partial, "parent_builder.node"

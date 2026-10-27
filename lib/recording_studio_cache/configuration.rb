@@ -10,16 +10,21 @@ module RecordingStudioCache
     }.freeze
 
     attr_accessor :namespace, :cache_store
-    attr_reader :hooks, :policies, :entry_policies
+    attr_reader :hooks, :policies, :entry_policies, :layout
 
     def initialize
       @namespace = "rsc"
       @cache_store = nil
+      @layout = nil
       @policies = DEFAULT_POLICIES.each_with_object({}) do |(name, attrs), memo|
         memo[name] = Policy.new(name: name, **attrs)
       end
       @entry_policies = {}
       @hooks = RecordingStudio::Hooks.new
+    end
+
+    def layout=(value)
+      @layout = RecordingStudio::Layout.accept(value)
     end
 
     def policy_for(name)
@@ -69,6 +74,7 @@ module RecordingStudioCache
         cache_store: cache_store.nil? ? :rails_cache : cache_store.class.name,
         policies: policies.transform_values { |policy| { expires_in: policy.expires_in, race_ttl: policy.race_ttl } },
         entry_policies: entry_policies.dup,
+        layout: layout,
         hooks_registered: hooks.instance_variable_get(:@registry).transform_values(&:size)
       }
     end
