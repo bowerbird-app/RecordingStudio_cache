@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "test/support/widen_recording_studio_requirement"
 require "bundler/gem_tasks"
 require "rake/testtask"
 

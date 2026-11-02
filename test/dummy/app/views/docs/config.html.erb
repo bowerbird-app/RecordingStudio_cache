@@ -1,5 +1,5 @@
 <% content_for :title, "Config" %>
-<% content_for :subtitle, "Replace this placeholder with the configuration settings your generated gem exposes." %>
+<% content_for :subtitle, "Namespace, policies, and entry names for this host." %>
 <% dummy_page_nav(back_url: root_path) %>
 
 <div class="flex w-full flex-col gap-6">
@@ -7,7 +7,11 @@
   <%= render FlatPack::CodeBlock::Component.new(
     language: :ruby,
     code: <<~'CODE'
-      # Add the config settings for the gem here.
+      RecordingStudioCache.configure do |config|
+        config.namespace = "rsc"
+        config.register_policy :api_payload, expires_in: 1.minute, race_ttl: 2.seconds
+        config.register_entry :api_payload, policy: :api_payload
+      end
     CODE
   ) %>
 </div>

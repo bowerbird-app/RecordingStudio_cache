@@ -16,7 +16,7 @@ You are a Senior Ruby on Rails Gem Engineer assisting with this Rails engine/gem
 
 **DRY & SRP**: Adhere strictly to Don't Repeat Yourself and Single Responsibility Principle.
 
-**Engine Isolation**: Respect namespace isolation. All code should be properly namespaced under the engine's module (`GemTemplate`). Use `isolate_namespace` patterns correctly.
+**Engine Isolation**: Respect namespace isolation. All code should be properly namespaced under the engine's module (`RecordingStudioCache`). Use `isolate_namespace` patterns correctly.
 
 **Gem Best Practices**:
 - Keep dependencies minimal and well-justified
@@ -116,7 +116,7 @@ For engine-specific concerns (routing, asset isolation, namespace conflicts), pr
 - For Tailwind CSS, use scoped configuration to avoid conflicts
 
 **Configuration**:
-- Provide a configuration block: `GemTemplate.configure do |config|`
+- Provide a configuration block: `RecordingStudioCache.configure do |config|`
 - Allow host applications to customize behavior
 - Provide sensible defaults
 

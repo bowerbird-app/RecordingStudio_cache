@@ -1,18 +1,18 @@
 <% content_for :title, "Install" %>
-<% content_for :subtitle, "Host-app setup for the mounted GemTemplate engine and its sample migrations." %>
+<% content_for :subtitle, "Add Cache to a host and run the generator." %>
 <% dummy_page_nav(back_url: root_path) %>
 
 <div class="flex w-full flex-col gap-6">
 
   <%= render FlatPack::SectionTitle::Component.new(
-    title: "Step 1",
-    subtitle: "Provide one section title for each step",
+    title: "Generator",
+    subtitle: "Writes the optional initializer and YAML",
   ) %>
 
   <%= render FlatPack::CodeBlock::Component.new(
     language: :bash,
     code: <<~CODE
-      # Put the step instruction here.
+      bin/rails generate recording_studio_cache:install
     CODE
   ) %>
 </div>
