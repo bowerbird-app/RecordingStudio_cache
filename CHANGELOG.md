@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dummy Metrics pin is tag `v0.7.0`. The Bundler `Gem::Dependency` / `Gem::Specification` shim is gone.
 - Dummy `/docs/install`, `/docs/methods`, and `/docs/config` copy describes Cache instead of GemTemplate placeholders.
 - Dummy root-switch `internal_route?` rescues `ActionController::RoutingError` only.
-- Root and dummy lockfiles pin `rack` `>= 3.2.8`.
+- Root and dummy lockfiles use `rack` `3.2.8`.
 
 ### Upgrade notes
 - Patch bump to `0.6.1`. Cache keys, policies, TTLs, instrumentation, and `RateLimiter` are unchanged.
