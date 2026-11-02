@@ -1,29 +1,26 @@
 <% content_for :title, "Methods" %>
-<% content_for :subtitle, "Document the public methods your addon exposes." %>
+<% content_for :subtitle, "Fetch, write, and invalidate through RecordingStudioCache." %>
 <% dummy_page_nav(back_url: root_path) %>
 
 <div class="flex w-full flex-col gap-6">
 
   <%= render FlatPack::SectionTitle::Component.new(
-    title: "Example method",
-    subtitle: "recordingstudio_addon.example_method",
+    title: "Fetch",
+    subtitle: "RecordingStudioCache.fetch",
   ) %>
 
   <%= render FlatPack::CodeBlock::Component.new(
     language: :ruby,
     code: <<~'CODE'
-      # Explain what this method does before the example.
-      result = RecordingstudioAddon.example_method(
-        # Replace with the real arguments this method accepts.
-        input: "demo value"
-      )
+      payload = RecordingStudioCache.fetch(recording, :api_payload, policy: :api_payload) do
+        expensive_api_payload_for(recording)
+      end
 
-      # Show what the method returns or what side effect it creates.
-      puts result
+      RecordingStudioCache.invalidate_tree!(recording.root_recording_or_self)
     CODE
   ) %>
 
   <p class="text-sm text-(--body-muted-content-color)">
-    Provide one section title and codeblock for each method
+    RateLimiter is a separate helper on RecordingStudioCache::RateLimiter.
   </p>
 </div>

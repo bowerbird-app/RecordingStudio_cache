@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioCacheTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.6.0", ::RecordingStudioCache::VERSION
+    assert_equal "0.6.1", ::RecordingStudioCache::VERSION
   end
 
   def test_engine_exists
@@ -52,7 +52,7 @@ class RecordingStudioCacheTest < Minitest::Test
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.22.0"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.12.0"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.11.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.6.1"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.7.0"'
     assert_includes gemfile, flatpack_ref
     assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
     assert_includes root_gemfile, flatpack_ref
