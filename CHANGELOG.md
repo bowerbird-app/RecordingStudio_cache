@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-04
+
+### Changed
+- Root and dummy Recording Studio pin is tag `v6.3.0`. FlatPack pin is tag `v0.1.341`.
+- Dummy sibling tags: Accessible `v0.24.0`, Root Switchable `v0.11.3`, Metrics `v0.7.1`. Trashable stays `v0.12.0`.
+
+### Upgrade notes
+- Patch bump to `0.6.2`. Cache keys, policies, TTLs, instrumentation, `RateLimiter`, gemspec floors (`recording_studio >= 6.1.0`, `rails ~> 8.1.0`), and `config.layout` are unchanged. Hosts can keep Recording Studio `>= 6.1.0`.
+
 ## [0.6.1] - 2026-11-02
 
 ### Changed
@@ -217,7 +226,11 @@ New addons copied from this template are born on Recording Studio 4.x.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.4.0
 [0.3.0]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.3.0
 [0.2.3]: https://github.com/bowerbird-app/RecordingStudio_cache/releases/tag/v0.2.3

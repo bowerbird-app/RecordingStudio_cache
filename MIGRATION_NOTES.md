@@ -4,12 +4,12 @@
 
 - Ruby 3.3 or newer
 - Rails 8.1 or newer
-- Recording Studio `>= 6.1.0` (root and dummy GitHub tag `v6.1.0`)
-- Accessible dummy tag `v0.22.0`
+- Recording Studio `>= 6.1.0` (root and dummy GitHub tag `v6.3.0`)
+- Accessible dummy tag `v0.24.0`
 - Trashable dummy tag `v0.12.0` (`require: false`; Accessible loads `recording_studio_trashable/query` only)
-- Root Switchable dummy tag `v0.11.0`
-- Metrics dummy tag `v0.7.0` (required by Root Switchable and Trashable; not on RubyGems)
-- FlatPack `0.1.319` at ref `1fcbafe94f8eb118f0a22182f63f5110fcc97a56` (`>= 0.1.315`). Not a runtime dependency of this gem.
+- Root Switchable dummy tag `v0.11.3`
+- Metrics dummy tag `v0.7.1` (required by Root Switchable and Trashable; not on RubyGems)
+- FlatPack tag `v0.1.341` (`>= 0.1.315`). Not a runtime dependency of this gem.
 - `view_component` `>= 4.14, < 5` (via FlatPack)
 - Public RubyGems and GitHub access for dependency installation
 - For Redis-backed generation tests: `REDIS_URL` and the `redis` gem (dev/test)

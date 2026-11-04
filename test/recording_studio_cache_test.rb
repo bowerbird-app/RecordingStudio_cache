@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioCacheTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.6.1", ::RecordingStudioCache::VERSION
+    assert_equal "0.6.2", ::RecordingStudioCache::VERSION
   end
 
   def test_engine_exists
@@ -43,19 +43,21 @@ class RecordingStudioCacheTest < Minitest::Test
     assert_includes install_script, "fetch-skills.sh"
   end
 
-  def test_gemfiles_pin_recording_studio_6_1_and_flatpack_0_1_319
+  def test_gemfiles_pin_recording_studio_6_3_and_flatpack_0_1_341
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
     root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
-    flatpack_ref = 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
+    flatpack_tag = 'tag: "v0.1.341"'
 
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.22.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.3.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.24.0"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.12.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.11.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.7.0"'
-    assert_includes gemfile, flatpack_ref
-    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.1.0"'
-    assert_includes root_gemfile, flatpack_ref
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.11.3"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.7.1"'
+    assert_includes gemfile, flatpack_tag
+    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.3.0"'
+    assert_includes root_gemfile, flatpack_tag
+    refute_includes gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
+    refute_includes root_gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
     refute_includes gemfile, "recording_studio/v3.0.0"
     refute_includes gemfile, 'tag: "v4.7.0"'
     refute_includes gemfile, 'tag: "v4.6.0"'
