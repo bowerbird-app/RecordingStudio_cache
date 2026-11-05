@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioCacheTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.6.2", ::RecordingStudioCache::VERSION
+    assert_equal "0.6.3", ::RecordingStudioCache::VERSION
   end
 
   def test_engine_exists

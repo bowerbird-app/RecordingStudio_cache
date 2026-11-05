@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-11-05
+
+### Changed
+- Root and dummy lockfiles use Rails `8.1.4.1`. Rack stays `3.2.8`, nokogiri `1.19.7`, loofah `2.25.3`, rails-html-sanitizer `1.7.2`. Dummy `net-ssh` stays `7.3.8`.
+
+### Upgrade notes
+- Patch bump to `0.6.3`. Cache keys, policies, TTLs, instrumentation, `RateLimiter`, gemspec floors, and git pins are unchanged. Hosts should use Rails `8.1.4.1` or newer in the `~> 8.1.0` range.
+
 ## [0.6.2] - 2026-11-04
 
 ### Changed
@@ -226,7 +234,8 @@ New addons copied from this template are born on Recording Studio 4.x.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.5.0...v0.6.0
