@@ -2,9 +2,11 @@
 
 require "test_helper"
 require "devise/test/integration_helpers"
+require_relative "../support/accessible_write_helpers"
 
 class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
+  include AccessibleWriteHelpers
 
   test "sign in page uses the devise layout and is not squished by the default layout" do
     get new_user_session_path
@@ -19,15 +21,10 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
   end
 
   test "home page renders the root switch dropdown trigger" do
-    user = User.find_or_create_by!(email: "root-switch-test@example.com") do |record|
-      record.password = "Password123!"
-      record.password_confirmation = "Password123!"
-    end
-
-    sign_in user
-
-    workspace = Workspace.create!(name: "Dropdown Workspace")
-    RecordingStudio.root_recording_for(workspace)
+    _user, workspace, _root = sign_in_with_accessible_workspace(
+      "root-switch-test@example.com",
+      "Dropdown Workspace"
+    )
 
     get root_path
 
@@ -37,15 +34,10 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
   end
 
   test "root switch page renders with the host default layout" do
-    user = User.find_or_create_by!(email: "root-switch-page-test@example.com") do |record|
-      record.password = "Password123!"
-      record.password_confirmation = "Password123!"
-    end
-
-    sign_in user
-
-    workspace = Workspace.create!(name: "Switch Page Workspace")
-    RecordingStudio.root_recording_for(workspace)
+    sign_in_with_accessible_workspace(
+      "root-switch-page-test@example.com",
+      "Switch Page Workspace"
+    )
 
     get "/recording_studio_root_switchable/v1/root_switch?scope=all_workspaces"
 
@@ -55,17 +47,14 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
   end
 
   test "switching returns to the current page when it is a valid internal route" do
-    user = User.find_or_create_by!(email: "root-switch-redirect-test@example.com") do |record|
-      record.password = "Password123!"
-      record.password_confirmation = "Password123!"
-    end
-
-    sign_in user
-
-    source_workspace = Workspace.create!(name: "Source Workspace")
-    target_workspace = Workspace.create!(name: "Target Workspace")
-    target_root_recording = RecordingStudio.root_recording_for(target_workspace)
-    RecordingStudio.root_recording_for(source_workspace)
+    _user, _workspace, target_root_recording = sign_in_with_accessible_workspace(
+      "root-switch-redirect-test@example.com",
+      "Target Workspace"
+    )
+    sign_in_with_accessible_workspace(
+      "root-switch-redirect-test@example.com",
+      "Source Workspace"
+    )
 
     patch "/recording_studio_root_switchable/v1/root_switch", params: {
       scope: "all_workspaces",
@@ -79,17 +68,14 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
   end
 
   test "switching falls back to home when return_to is not a valid internal route" do
-    user = User.find_or_create_by!(email: "root-switch-fallback-test@example.com") do |record|
-      record.password = "Password123!"
-      record.password_confirmation = "Password123!"
-    end
-
-    sign_in user
-
-    source_workspace = Workspace.create!(name: "Fallback Source Workspace")
-    target_workspace = Workspace.create!(name: "Fallback Target Workspace")
-    target_root_recording = RecordingStudio.root_recording_for(target_workspace)
-    RecordingStudio.root_recording_for(source_workspace)
+    _user, _workspace, target_root_recording = sign_in_with_accessible_workspace(
+      "root-switch-fallback-test@example.com",
+      "Fallback Target Workspace"
+    )
+    sign_in_with_accessible_workspace(
+      "root-switch-fallback-test@example.com",
+      "Fallback Source Workspace"
+    )
 
     patch "/recording_studio_root_switchable/v1/root_switch", params: {
       scope: "all_workspaces",
@@ -100,5 +86,21 @@ class RootSwitchDropdownTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to "/"
+  end
+
+  private
+
+  def sign_in_with_accessible_workspace(email, workspace_name)
+    user = User.find_or_create_by!(email: email) do |record|
+      record.password = "Password123!"
+      record.password_confirmation = "Password123!"
+    end
+    Current.actor = user
+    sign_in user
+
+    workspace = Workspace.create!(name: workspace_name)
+    root = RecordingStudio.root_recording_for(workspace)
+    grant_admin!(user, root)
+    [ user, workspace, root ]
   end
 end

@@ -13,7 +13,8 @@ find_or_record_child = lambda do |recordable, root_recording, parent_recording|
       action: "created",
       recordable: recordable,
       root_recording: root_recording,
-      parent_recording: parent_recording
+      parent_recording: parent_recording,
+      actor: Current.actor
     ).recording
 end
 
@@ -38,6 +39,11 @@ begin
   root_recording = RecordingStudio.root_recording_for(workspace)
   accessible_root_recording = RecordingStudio.root_recording_for(accessible_workspace)
   private_root_recording = RecordingStudio.root_recording_for(private_workspace)
+
+  [ root_recording, accessible_root_recording, private_root_recording ].each do |root|
+    result = RecordingStudioAccessible.bootstrap_owner_access!(recording: root, actor: user)
+    raise result.error if result.failure?
+  end
 
   folder_recording = find_or_record_child.call(folder, root_recording, root_recording)
 
