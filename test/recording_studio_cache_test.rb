@@ -43,18 +43,18 @@ class RecordingStudioCacheTest < Minitest::Test
     assert_includes install_script, "fetch-skills.sh"
   end
 
-  def test_gemfiles_pin_recording_studio_6_3_and_flatpack_0_1_341
+  def test_gemfiles_pin_recording_studio_6_7_and_flatpack_0_1_356
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
     root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
-    flatpack_tag = 'tag: "v0.1.341"'
+    flatpack_tag = 'tag: "v0.1.356"'
 
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.3.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.24.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.12.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.11.3"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.7.1"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.7.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.31.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.14.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.15.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.8.0"'
     assert_includes gemfile, flatpack_tag
-    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.3.0"'
+    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.7.0"'
     assert_includes root_gemfile, flatpack_tag
     refute_includes gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
     refute_includes root_gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
@@ -197,6 +197,9 @@ class RecordingStudioCacheTest < Minitest::Test
 
     assert_includes initializer_source, "config.require_recordable_declarations = true"
     assert_includes initializer_source, "config.recordable_types = [ \"Workspace\", \"Folder\", \"Page\" ]"
+    assert_includes initializer_source, "config.authorize_write"
+    assert_includes initializer_source, "RecordingStudioAccessible.authorized?"
+    assert_includes initializer_source, "AccessCreationContext.allowed?"
     refute_includes initializer_source, "config.include_children"
     refute_includes initializer_source, "config.features."
     refute_includes initializer_source, "v3"

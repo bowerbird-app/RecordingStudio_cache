@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Root and dummy Recording Studio pin is tag `v6.7.0`. FlatPack pin is tag `v0.1.356`.
+- Dummy sibling tags: Accessible `v0.31.0`, Trashable `v0.14.0`, Root Switchable `v0.15.0`, Metrics `v0.8.0`.
+- Dummy host sets `config.authorize_write` through Accessible. Seeds call `bootstrap_owner_access!` before child recordings. Recording Studio 6.5+ denies writes when `authorize_write` is missing.
+- Dummy root-switch scope lists Accessible `:view` roots. Root Switchable 0.15 forbids the switch page when the current root is not viewable.
+
 ## [0.6.3] - 2026-11-05
 
 ### Changed
