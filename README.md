@@ -26,7 +26,7 @@ The host chooses the cache backend.
 
 ```ruby
 # Gemfile
-gem "recording_studio", ">= 6.1.0"
+gem "recording_studio", ">= 7.0", "< 8.0"
 gem "recording_studio_cache", github: "bowerbird-app/RecordingStudio_cache"
 ```
 
