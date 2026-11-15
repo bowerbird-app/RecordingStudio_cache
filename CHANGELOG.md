@@ -7,12 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-15
+
 ### Changed
-- Root and dummy Recording Studio pin is tag `v6.10.0`. FlatPack pin is tag `v0.1.366`.
-- Dummy sibling tags: Accessible `v0.37.0`, Trashable `v0.14.1`, Root Switchable `v0.15.0`, Metrics `v0.8.0`.
-- Dummy copies Recording Studio 6.9's `recording_studio_events.root_recording_id` migration. Event writes on 6.9+ need that column.
-- Dummy host sets `config.authorize_write` through Accessible. Seeds call `bootstrap_owner_access!` before child recordings. Recording Studio 6.5+ denies writes when `authorize_write` is missing.
-- Dummy root-switch scope lists Accessible `:view` roots. Root Switchable 0.15 forbids the switch page when the current root is not viewable.
+- Recording Studio dependency is `>= 7.0`, `< 8.0`. Root and dummy pin is tag `v7.0.0`. Rails gemspec floor is `>= 8.1.0` (no pessimistic cap).
+- Dummy sibling tags that can resolve with core 7: Accessible `v0.43.1`, Trashable `v0.16.1`, Root Switchable `v0.15.1`. Metrics stays `v0.8.0`. FlatPack stays tag `v0.1.366`.
+- Seeds and tests that created roots call `create_root_recording!`. Lookups stay on `root_recording_for`. Dummy `authorize_write` allows a persisted user to start a root when `recording`, `root_recording`, and `parent_recording` are nil. Later writes still go through Accessible.
+- Seeds find kept children with `Recording.kept`. Trashable 0.16 removed `recording_studio_trashable_kept_sql`.
+- Dummy copies Recording Studio 6.9's `recording_studio_events.root_recording_id` migration. Event writes need that column. Core 7.0.0 adds no migration for the root split.
+- Dummy root-switch scope lists Accessible `:view` roots.
+
+### Upgrade notes
+- Minor bump to `0.7.0`. Cache keys, policies, TTLs, instrumentation, and `RateLimiter` are unchanged.
+- Hosts need Recording Studio `>= 7.0`, `< 8.0`. `root_recording_for` no longer creates a root. Create with `create_root_recording!`.
+- `authorize_write` receives `recording`, `root_recording`, and `parent_recording` as nil on that create. Allow it only for actors who may start a root.
+- No new migration in this gem.
 
 ## [0.6.3] - 2026-11-05
 
@@ -241,7 +250,8 @@ New addons copied from this template are born on Recording Studio 4.x.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.3...v0.7.0
 [0.6.3]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.0...v0.6.1

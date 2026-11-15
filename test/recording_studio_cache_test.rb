@@ -4,18 +4,21 @@ require "test_helper"
 
 class RecordingStudioCacheTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.6.3", ::RecordingStudioCache::VERSION
+    assert_equal "0.7.0", ::RecordingStudioCache::VERSION
   end
 
   def test_engine_exists
     assert_kind_of Class, ::RecordingStudioCache::Engine
   end
 
-  def test_gemspec_requires_recording_studio_6_1
+  def test_gemspec_requires_recording_studio_7
     gemspec = File.read(File.expand_path("../recording_studio_cache.gemspec", __dir__))
 
-    assert_includes gemspec, 'spec.add_dependency "recording_studio", ">= 6.1.0"'
+    assert_includes gemspec, 'spec.add_dependency "recording_studio", ">= 7.0", "< 8.0"'
+    assert_includes gemspec, 'spec.add_dependency "rails", ">= 8.1.0"'
+    refute_includes gemspec, '"recording_studio", ">= 6.1.0"'
     refute_includes gemspec, '"recording_studio", "~> 4.2"'
+    refute_includes gemspec, "~> 0."
     refute_includes gemspec, "flat_pack"
   end
 
@@ -43,18 +46,18 @@ class RecordingStudioCacheTest < Minitest::Test
     assert_includes install_script, "fetch-skills.sh"
   end
 
-  def test_gemfiles_pin_recording_studio_6_10_and_flatpack_0_1_366
+  def test_gemfiles_pin_recording_studio_7_and_flatpack_0_1_366
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
     root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
     flatpack_tag = 'tag: "v0.1.366"'
 
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.10.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.37.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.14.1"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.15.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.0.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.43.1"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v0.16.1"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.15.1"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.8.0"'
     assert_includes gemfile, flatpack_tag
-    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v6.10.0"'
+    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.0.0"'
     assert_includes root_gemfile, flatpack_tag
     refute_includes gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
     refute_includes root_gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'

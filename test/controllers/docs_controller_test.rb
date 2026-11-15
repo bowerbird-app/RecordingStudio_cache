@@ -78,7 +78,7 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
 
   test "recordings tree page renders successfully" do
     workspace = Workspace.create!(name: "Tree Workspace")
-    root_recording = RecordingStudio.root_recording_for(workspace)
+    root_recording = create_root!(workspace)
     grant_admin!(@user, root_recording)
     folder = Folder.create!(name: "Reference")
     folder_recording = record_child(folder, root_recording, root_recording)
@@ -137,10 +137,10 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
 
     workspace = Workspace.create!(name: "Counted Workspace")
     2.times do
-      RecordingStudio.root_recording_for(Workspace.create!(name: "Counted Workspace #{SecureRandom.hex(4)}"))
+      create_root!(Workspace.create!(name: "Counted Workspace #{SecureRandom.hex(4)}"))
     end
 
-    root_recording = RecordingStudio.root_recording_for(workspace)
+    root_recording = create_root!(workspace)
     grant_admin!(@user, root_recording)
     folder = Folder.create!(name: "Counted Folder")
     record_child(folder, root_recording, root_recording)
@@ -160,6 +160,10 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
   def recordable_type_summary(recording_count, recordable_count)
     "#{ActionController::Base.helpers.pluralize(recording_count, 'recording')} point to this type " \
       "• #{ActionController::Base.helpers.pluralize(recordable_count, 'recordable')} in the database"
+  end
+
+  def create_root!(recordable)
+    RecordingStudio.create_root_recording!(recordable, actor: Current.actor)
   end
 
   def record_child(recordable, root_recording, parent_recording)
