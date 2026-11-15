@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Seeds find kept children with `Recording.kept`. Trashable 0.16 removed `recording_studio_trashable_kept_sql`.
 - Dummy copies Recording Studio 6.9's `recording_studio_events.root_recording_id` migration. Event writes need that column. Core 7.0.0 adds no migration for the root split.
 - Dummy root-switch scope lists Accessible `:view` roots.
+- Dummy lockfile `msgpack` is `1.8.7` (CVE-2026-126366).
 
 ### Upgrade notes
 - Minor bump to `0.7.0`. Cache keys, policies, TTLs, instrumentation, and `RateLimiter` are unchanged.
