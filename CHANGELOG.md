@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-16
+
+### Changed
+- Root and dummy GitHub pins move to the latest releases: Recording Studio `v7.3.0` and FlatPack `v0.1.377`. Dummy siblings: Accessible `v0.45.1`, Trashable `v1.0.0`, Root Switchable `v0.16.0`, Metrics `v0.9.0`.
+- The gemspec stays `recording_studio >= 7.0`, `< 8.0` and `rails >= 8.1.0`. Core `v7.3.0` is inside that range.
+
+### Upgrade notes
+- Patch bump to `0.7.1`. Cache keys, policies, TTLs, instrumentation, and `RateLimiter` are unchanged. No new migration in this gem.
+- Hosts stay on Recording Studio `>= 7.0`, `< 8.0`. This repo's test app uses the tags above. Trashable `v1.0.0` drops its own hook registry; this gem does not call it.
+
 ## [0.7.0] - 2026-11-15
 
 ### Changed
@@ -251,7 +261,8 @@ New addons copied from this template are born on Recording Studio 4.x.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.3...v0.7.0
 [0.6.3]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.1...v0.6.2
