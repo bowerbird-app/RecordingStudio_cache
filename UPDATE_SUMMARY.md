@@ -1,10 +1,10 @@
 # Recording Studio kit pin update
 
-Copied addons now start on Recording Studio 7.0 and FlatPack 0.1.366. The gemspec requires `recording_studio >= 7.0`, `< 8.0`.
+Copied addons now start on Recording Studio 7.3 and FlatPack 0.1.377. The gemspec requires `recording_studio >= 7.0`, `< 8.0`.
 
 - Gemspec: `add_dependency "recording_studio", ">= 7.0", "< 8.0"` and `rails >= 8.1.0`
-- `flat_pack` stays out of this gemspec. Root and dummy Gemfiles pin `bowerbird-app/flatpack` tag `v0.1.366`.
-- Dummy GitHub tags: Recording Studio `v7.0.0`, Accessible `v0.43.1`, Trashable `v0.16.1`, Root Switchable `v0.15.1`, Metrics `v0.8.0`
+- `flat_pack` stays out of this gemspec. Root and dummy Gemfiles pin `bowerbird-app/flatpack` tag `v0.1.377`.
+- Dummy GitHub tags: Recording Studio `v7.3.0`, Accessible `v0.45.1`, Trashable `v1.0.0`, Root Switchable `v0.16.0`, Metrics `v0.9.0`
 - Dummy copies core migration `20261114090000_add_root_recording_id_to_recording_studio_events` so event writes work on Recording Studio 6.9+.
 - `RecordingStudioCache::Configuration#layout` defaults to `nil` and accepts values through `RecordingStudio::Layout.accept`
 - Authenticated dummy screens call `recording_studio_layout`. Devise keeps the `"application"` layout.

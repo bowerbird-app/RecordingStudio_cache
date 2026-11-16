@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Root and dummy GitHub pins move to the latest releases: Recording Studio `v7.3.0` and FlatPack `v0.1.377`. Dummy siblings: Accessible `v0.45.1`, Trashable `v1.0.0`, Root Switchable `v0.16.0`, Metrics `v0.9.0`.
+- The gemspec stays `recording_studio >= 7.0`, `< 8.0` and `rails >= 8.1.0`. Core `v7.3.0` is inside that range. The gem version stays `0.7.0`.
+- Root and dummy lockfiles use Puma `8.1.1` so Bundler Audit clears the `8.0.2` advisories (fixed in `>= 8.0.3`).
+
+### Upgrade notes
+- Cache keys, policies, TTLs, instrumentation, and `RateLimiter` are unchanged. No new migration in this gem.
+- Hosts stay on Recording Studio `>= 7.0`, `< 8.0`. This repo's test app uses the tags above. Trashable `v1.0.0` drops its own hook registry; this gem does not call it.
+
 ## [0.7.0] - 2026-11-15
 
 ### Changed
