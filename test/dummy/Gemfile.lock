@@ -65,7 +65,7 @@ GIT
 PATH
   remote: ../..
   specs:
-    recording_studio_cache (0.7.1)
+    recording_studio_cache (0.7.0)
       rails (>= 8.1.0)
       recording_studio (>= 7.0, < 8.0)
 
@@ -617,7 +617,7 @@ CHECKSUMS
   rdoc (8.1.0) sha256=befc37880a5cfd36dcb176c748b5fd5ee39dd3536a75e81824e4972ce230f60a
   recording_studio (7.3.0)
   recording_studio_accessible (0.45.1)
-  recording_studio_cache (0.7.1)
+  recording_studio_cache (0.7.0)
   recording_studio_metrics (0.9.0)
   recording_studio_root_switchable (0.16.0)
   recording_studio_trashable (1.0.0)
