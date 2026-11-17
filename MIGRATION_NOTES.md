@@ -4,8 +4,9 @@
 
 - Ruby 3.3 or newer
 - Rails 8.1 or newer
-- Recording Studio `>= 7.0`, `< 8.0` (root and dummy GitHub tag `v7.3.0`). `root_recording_for` only finds a root. Seeds and other creates call `create_root_recording!`. Dummy `config.authorize_write` allows a persisted user to start a root, then uses Accessible for later writes. Seeds bootstrap owner access before child recordings.
+- Recording Studio `>= 7.0`, `< 8.0` (root and dummy GitHub tag `v7.4.0`). `root_recording_for` only finds a root. Seeds and other creates call `create_root_recording!`. Dummy `config.authorize_write` allows a persisted user to start a root, then uses Accessible for later writes. Seeds bootstrap owner access before child recordings.
 - Dummy includes Recording Studio migration `20261114090000_add_root_recording_id_to_recording_studio_events`. Core 6.9+ requires `recording_studio_events.root_recording_id` before events can be written.
+- Dummy does not copy core `20261116120000` (`index_rs_events_on_timeline`) or `20261116230000` (`index_rs_recordings_on_root_type_created_at_id`). This gem's tests pass without those indexes. A host on core `v7.4.0` should still run them.
 - Accessible dummy tag `v0.45.1`
 - Trashable dummy tag `v1.0.0` (`require: false`; Accessible loads `recording_studio_trashable/query` only). Kept rows use `Recording.kept`. Trashable 1.0 removes its hook registry; register hooks on `RecordingStudio.configuration.hooks`.
 - Root Switchable dummy tag `v0.16.0` (switcher lists Accessible `:view` roots). It depends on this gem `>= 0.5`, `< 1.0`, Accessible `>= 0.44.0`, `< 1.0`, and Metrics `>= 0.9.0`, `< 1.0`.
