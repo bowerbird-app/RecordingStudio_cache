@@ -8,7 +8,7 @@
 - Dummy includes Recording Studio migration `20261114090000_add_root_recording_id_to_recording_studio_events`. Core 6.9+ requires `recording_studio_events.root_recording_id` before events can be written.
 - Dummy does not copy core `20261116120000` (`index_rs_events_on_timeline`), `20261116230000` (`index_rs_recordings_on_root_type_created_at_id`), `20261117120000` (`enforce_recording_studio_recording_root_invariant`), or `20261117200000` (`replace_recording_studio_recordings_root_index`). A host on core `v7.7.1` should still run them.
 - Accessible dummy tag `v0.54.0` (requires Recording Studio `>= 7.7.0`, `< 8.0`)
-- Trashable dummy tag `v1.2.0` (`require: false`; Accessible loads `recording_studio_trashable/query` only). Kept rows use `Recording.kept`. Trashable 1.x removes its hook registry; register hooks on `RecordingStudio.configuration.hooks`. Trashable `v1.2.0` adds `purge_at`; this dummy does not copy that migration.
+- Trashable dummy tag `v1.2.0` (`require: false` so the engine stays off; Accessible v0.54 does not load it). Kept rows use `Recording.kept`. Trashable 1.x removes its hook registry; register hooks on `RecordingStudio.configuration.hooks`. Trashable `v1.2.0` adds `purge_at`; this dummy does not copy that migration.
 - Root Switchable dummy tag `v0.16.0` (switcher lists Accessible `:view` roots). It depends on this gem `>= 0.5`, `< 1.0`, Accessible `>= 0.44.0`, `< 1.0`, and Metrics `>= 0.9.0`, `< 1.0`.
 - Metrics dummy tag `v0.9.1` (required by Root Switchable and Trashable; not on RubyGems)
 - FlatPack tag `v0.1.378` (`>= 0.1.315`). Not a runtime dependency of this gem.

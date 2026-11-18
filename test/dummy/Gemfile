@@ -6,7 +6,7 @@ gem "recording_studio_cache", path: "../.."
 # RecordingStudio engine
 gem "recording_studio", github: "bowerbird-app/RecordingStudio", tag: "v7.7.1"
 gem "recording_studio_accessible", github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.54.0"
-# Accessible loads recording_studio_trashable/query only. Keep the engine off.
+# Accessible v0.54 does not load Trashable. require: false keeps the engine off.
 gem "recording_studio_trashable", github: "bowerbird-app/RecordingStudio_trashable", tag: "v1.2.0", require: false
 
 # Root switcher for the top nav
