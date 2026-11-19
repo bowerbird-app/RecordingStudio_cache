@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-19
+
+### Changed
+- Root and dummy GitHub pins move to Recording Studio `v7.8.0` (`~> 7.8`) and FlatPack `v0.2.0` (`~> 0.2`). Dummy siblings: Accessible `v0.55.0` (`~> 0.55`), Trashable `v1.2.3` (`~> 1.2`), Root Switchable `v0.16.1` (`~> 0.16`), Metrics `v0.9.2` (`~> 0.9`).
+- The gemspec stays `recording_studio >= 7.0`, `< 8.0` and `rails >= 8.1.0`. Core `v7.8.0` is inside that range. `flat_pack` stays out of the gemspec.
+- The dummy importmap drops the manual `flat_pack/heroicons` pin. The captured install page drops that pin and the `flat-pack--icon` controller.
+
+### Upgrade notes
+- Minor bump to `0.8.0`. Cache keys, policies, TTLs, instrumentation, and `RateLimiter` are unchanged. No new migration in this gem.
+- Hosts MUST run the Recording Studio 7.4, 7.5 and 7.7 migrations if they have not. This dummy does not copy them.
+- flat_pack 0.2.0 is supported; hosts moving to 0.2 must remove the manual `flat_pack/heroicons` importmap pin and any `flat-pack--icon` controller registration.
+
 ## [0.7.1] - 2026-11-18
 
 ### Changed
@@ -262,7 +274,8 @@ New addons copied from this template are born on Recording Studio 4.x.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.3...v0.7.0
 [0.6.3]: https://github.com/bowerbird-app/RecordingStudio_cache/compare/v0.6.2...v0.6.3

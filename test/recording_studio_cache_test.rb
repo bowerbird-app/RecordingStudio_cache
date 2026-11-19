@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioCacheTest < Minitest::Test
   def test_version_matches_release
-    assert_equal "0.7.1", ::RecordingStudioCache::VERSION
+    assert_equal "0.8.0", ::RecordingStudioCache::VERSION
   end
 
   def test_engine_exists
@@ -49,16 +49,32 @@ class RecordingStudioCacheTest < Minitest::Test
   def test_gemfiles_pin_latest_recording_studio_and_flatpack_releases
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
     root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
-    flatpack_tag = 'tag: "v0.1.378"'
+    flatpack_line = 'gem "flat_pack", "~> 0.2", github: "bowerbird-app/flatpack", tag: "v0.2.0"'
+    studio_line = 'gem "recording_studio", "~> 7.8", github: "bowerbird-app/RecordingStudio", tag: "v7.8.0"'
 
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.7.1"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.54.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v1.2.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.16.0"'
-    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.9.1"'
-    assert_includes gemfile, flatpack_tag
-    assert_includes root_gemfile, 'github: "bowerbird-app/RecordingStudio", tag: "v7.7.1"'
-    assert_includes root_gemfile, flatpack_tag
+    assert_includes gemfile, studio_line
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.55.0"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v1.2.3"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.16.1"'
+    assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_metrics", tag: "v0.9.2"'
+    assert_includes gemfile, '"recording_studio_accessible", "~> 0.55"'
+    assert_includes gemfile, '"recording_studio_trashable", "~> 1.2"'
+    assert_includes gemfile, '"recording_studio_root_switchable", "~> 0.16"'
+    assert_includes gemfile, '"recording_studio_metrics", "~> 0.9"'
+    assert_includes gemfile, flatpack_line
+    assert_includes root_gemfile, studio_line
+    assert_includes root_gemfile, flatpack_line
+    refute_includes gemfile, "flat_pack/heroicons"
+    refute_includes root_gemfile, 'tag: "v0.1.378"'
+    refute_includes gemfile, 'tag: "v7.7.1"'
+
+    importmap = File.read(File.expand_path("dummy/config/importmap.rb", __dir__))
+    install_page = File.read(File.expand_path("dummy/install_page.html", __dir__))
+
+    refute_includes importmap, "flat_pack/heroicons"
+    refute_includes importmap, "icon_controller"
+    refute_includes install_page, "flat_pack/heroicons"
+    refute_includes install_page, "icon_controller"
     refute_includes gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
     refute_includes root_gemfile, 'ref: "1fcbafe94f8eb118f0a22182f63f5110fcc97a56"'
     refute_includes gemfile, "recording_studio/v3.0.0"
