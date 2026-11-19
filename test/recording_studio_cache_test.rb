@@ -50,8 +50,9 @@ class RecordingStudioCacheTest < Minitest::Test
     gemfile = File.read(File.expand_path("dummy/Gemfile", __dir__))
     root_gemfile = File.read(File.expand_path("../Gemfile", __dir__))
     flatpack_line = 'gem "flat_pack", "~> 0.2", github: "bowerbird-app/flatpack", tag: "v0.2.0"'
+    studio_line = 'gem "recording_studio", "~> 7.8", github: "bowerbird-app/RecordingStudio", tag: "v7.8.0"'
 
-    assert_includes gemfile, 'gem "recording_studio", "~> 7.8", github: "bowerbird-app/RecordingStudio", tag: "v7.8.0"'
+    assert_includes gemfile, studio_line
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_accessible", tag: "v0.55.0"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_trashable", tag: "v1.2.3"'
     assert_includes gemfile, 'github: "bowerbird-app/RecordingStudio_root_switchable", tag: "v0.16.1"'
@@ -61,7 +62,7 @@ class RecordingStudioCacheTest < Minitest::Test
     assert_includes gemfile, '"recording_studio_root_switchable", "~> 0.16"'
     assert_includes gemfile, '"recording_studio_metrics", "~> 0.9"'
     assert_includes gemfile, flatpack_line
-    assert_includes root_gemfile, 'gem "recording_studio", "~> 7.8", github: "bowerbird-app/RecordingStudio", tag: "v7.8.0"'
+    assert_includes root_gemfile, studio_line
     assert_includes root_gemfile, flatpack_line
     refute_includes gemfile, "flat_pack/heroicons"
     refute_includes root_gemfile, 'tag: "v0.1.378"'
